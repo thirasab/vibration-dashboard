@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ระบบมอนิเตอร์ความสั่นสะเทือนอัจฉริยะ</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    /* =========================================
+       🛠️ RESET & THEME CONFIGURATION
+       ========================================= */
+    *, *::before, *::after { box-sizing: border-box; }
+
+    :root {
+      --bg-color: #f6f8fa;
+      --card-bg: #ffffff;
+      --primary: #00b06f; 
+      --peak-color: #3b82f6; 
+      --text-main: #111827;
+      --text-sub: #6b7280;
+      --shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+      --border: 1px solid #e5e7eb;
+      --header-color: #111827;
+      --btn-bg: #f3f4f6;
+      --theme-btn-bg: #1f2937;
+      --theme-btn-text: #ffffff;
+      --tab-bg: #e5e7eb;
+      --accent: #f97316;
+    }
+
+    body.dark-mode {
+      --bg-color: #0c1017;
+      --card-bg: #161a22;
+      --text-main: #f9fafb;
+      --text-sub: #8c96a5;
+      --shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+      --border: 1px solid #222833;
+      --header-color: #ffffff;
+      --btn-bg: #202632;
+      --theme-btn-bg: #00b06f;
+      --theme-btn-text: #0c1017;
+      --tab-bg: #0c1017;
+    }
+
+    body { font-family: 'Prompt', -apple-system, sans-serif; background: var(--bg-color); color: var(--text-main); margin: 0; padding: 16px; transition: background 0.2s, color 0.2s; overflow-x: hidden; }
+    .wrapper { max-width: 1200px; margin: 0 auto; }
+
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+    header .header-title { flex: 1; min-width: 250px; }
+    header h1 { margin: 0; font-size: 20px; font-weight: 600; color: var(--header-color); letter-spacing: -0.3px; }
+    header p { margin: 2px 0 0 0; color: var(--text-sub); font-size: 13px; }
+
+    .header-actions { display: flex; flex-wrap: wrap; gap: 8px; width: auto; justify-content: flex-end; }
+    .btn-action-toggle { background: var(--theme-btn-bg); color: var(--theme-btn-text); padding: 8px 12px; border: none; border-radius: 20px; font-weight: 500; font-family: inherit; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; flex: 1; min-width: 90px; white-space: nowrap; transition: 0.2s; }
+    .btn-action-toggle:active { transform: scale(0.95); }
+
+    /* 🟢 เมนูแยกหน้า (Tabs) */
+    .main-tabs { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; background: var(--card-bg); padding: 6px; border-radius: 12px; border: var(--border); }
+    .main-tab-btn { flex: 1; padding: 10px 16px; border: none; border-radius: 8px; cursor: pointer; background: transparent; color: var(--text-sub); font-family: 'Inter', 'Prompt', sans-serif; font-weight: 600; font-size: 14px; white-space: nowrap; transition: all 0.2s; }
+    .main-tab-btn.active { background: var(--primary); color: #ffffff; box-shadow: 0 4px 10px rgba(0, 176, 111, 0.2); }
+
+    .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .status-card { background: var(--card-bg); border-radius: 12px; padding: 16px 20px; box-shadow: var(--shadow); border: var(--border); display: flex; justify-content: space-between; align-items: center; transition: transform 0.15s; cursor: pointer; }
+    .status-card:active { transform: scale(0.98); } 
+
+    .card-info h3 { margin: 0 0 4px 0; font-size: 13px; color: var(--text-sub); font-weight: 500; }
+    .card-info .value { font-family: 'Inter', sans-serif; font-size: 28px; font-weight: 700; margin-bottom: 2px; line-height: 1.1; color: var(--text-main); }
+    .card-info .value span { font-family: 'Prompt', sans-serif; font-size: 13px; font-weight: 400; color: var(--text-sub); margin-left: 2px; }
+    .card-info .time { font-family: 'Inter', sans-serif; font-size: 11px; color: var(--text-sub); display: flex; align-items: center; gap: 4px; }
+    .sparkline-container { width: 120px; height: 50px; pointer-events: none; }
+
+    @keyframes flashDanger { 0%, 100% { background-color: var(--card-bg); border-color: var(--border); } 50% { background-color: rgba(239, 68, 68, 0.08); border-color: #ef4444; } }
+    .alert-danger { animation: flashDanger 1s infinite !important; }
+    .alert-danger .value, .alert-danger h3 { color: #ef4444 !important; }
+
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); z-index: 1000; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.2s ease; }
+    .modal-overlay.show { display: flex; opacity: 1; }
+    .modal-content { background: var(--bg-color); width: 100%; max-width: 900px; max-height: 85vh; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.4); border: var(--border); transform: scale(0.96); transition: all 0.25s cubic-bezier(0.1, 0.9, 0.2, 1); }
+    .modal-overlay.show .modal-content { transform: scale(1); }
+
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0; }
+    .modal-title { margin: 0; font-size: 18px; font-weight: 600; color: var(--header-color); }
+    .close-btn { background: var(--btn-bg); color: var(--text-main); border: none; border-radius: 50%; width: 34px; height: 34px; cursor: pointer; display: flex; justify-content: center; align-items: center; }
+    
+    .sensor-stats-bar { display: flex; gap: 16px; align-items: center; background: var(--card-bg); border: var(--border); border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; }
+    .stat-item { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-sub); }
+    .stat-item .val { font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 700; color: var(--text-main); }
+    .stat-item i { font-size: 16px; color: #f59e0b; }
+
+    .modal-body-scroll { flex-grow: 1; overflow-y: auto; overflow-x: hidden; }
+    .control-panel { background: var(--tab-bg); border-radius: 10px; padding: 4px; margin-bottom: 12px; }
+    .btn-group { display: flex; gap: 2px; width: 100%; }
+    button.filter-btn { flex: 1; padding: 8px 0; border: none; border-radius: 8px; cursor: pointer; background: transparent; color: var(--text-sub); font-family: 'Inter', 'Prompt', sans-serif; font-weight: 600; font-size: 13px; transition: all 0.2s; }
+    button.filter-btn.active { background: var(--card-bg); color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+
+    .chart-container { background: var(--card-bg); border-radius: 12px; padding: 8px 4px 12px 4px; border: var(--border); width: 100%; }
+    .chart-wrapper { position: relative; height: 350px; width: 100%; }
+
+    @media (max-width: 768px) {
+      body { padding: 12px; }
+      .header-actions { width: 100%; justify-content: space-between; }
+      .status-grid { grid-template-columns: 1fr; gap: 10px; }
+      .modal-overlay { padding: 12px; } 
+      .modal-content { max-height: 88vh; padding: 16px; }
+      .sensor-stats-bar { padding: 8px 12px; }
+      .stat-item { font-size: 13px; }
+      .stat-item .val { font-size: 15px; }
+      .chart-wrapper { height: 310px; }
+      button.filter-btn { font-size: 12px; padding: 6px 0; }
+    }
+
+    .apexcharts-text { font-family: 'Inter', sans-serif !important; font-weight: 500; }
+    .apexcharts-tooltip { background: var(--card-bg) !important; border: 1px solid var(--border) !important; box-shadow: var(--shadow) !important; border-radius: 8px !important; }
+    .apexcharts-tooltip-title { font-family: 'Prompt', sans-serif !important; font-size: 12px !important; background: rgba(0,0,0,0.02) !important; border-bottom: 1px solid var(--border) !important; font-weight: 600 !important; }
+    body.dark-mode .apexcharts-tooltip-title { background: rgba(255,255,255,0.03) !important; }
+  </style>
+</head>
+<body>
+
+  <div class="wrapper">
+    <header>
+      <div class="header-title">
+        <h1><i class="fa-solid fa-wave-square" style="color: var(--primary); margin-right: 4px;"></i> มอนิเตอร์ความสั่นสะเทือน</h1>
+        <p>ข้อมูลเซ็นเซอร์แบบเรียลไทม์</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn-action-toggle" onclick="setAlarmLimit()" style="background: var(--accent); color: white;">
+          <i class="fa-solid fa-triangle-exclamation"></i> Alarm: <span id="alarm-display">40</span>
+        </button>
+        <button class="btn-action-toggle" id="sound-toggle" onclick="toggleSound()">
+          <i class="fa-solid fa-bell-slash"></i> ปิดเสียง
+        </button>
+        <button class="btn-action-toggle" id="theme-toggle" onclick="toggleDarkMode()">
+          <i class="fa-solid fa-moon"></i> กลางคืน
+        </button>
+      </div>
+    </header>
+
+    <div class="main-tabs">
+      <button class="main-tab-btn active" data-group="cm10-11" onclick="switchTab('cm10-11')">CM10-11</button>
+      <button class="main-tab-btn" data-group="cm7-9" onclick="switchTab('cm7-9')">CM7-9</button>
+      <button class="main-tab-btn" data-group="cm5-6" onclick="switchTab('cm5-6')">CM5-6</button>
+    </div>
+
+    <div class="status-grid" id="devices-container"></div>
+  </div>
+
+  <div class="modal-overlay" id="chartModal" onclick="closeModalOutside(event)">
+    <div class="modal-content">
+      
+      <div class="modal-header">
+        <h2 class="modal-title" id="modal-title">NOED...</h2>
+        <button class="close-btn" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="sensor-stats-bar">
+        <div class="stat-item">
+          <i class="fa-solid fa-temperature-half"></i> 
+          <span>อุณหภูมิมอเตอร์:</span>
+          <span class="val" id="modal-temp">-- °C</span>
+        </div>
+      </div>
+
+      <div class="modal-body-scroll">
+        <div class="control-panel">
+          <div class="btn-group">
+            <button class="filter-btn" id="btn-1" onclick="loadDataByDuration(1)">1h</button>
+            <button class="filter-btn" id="btn-6" onclick="loadDataByDuration(6)">6h</button>
+            <button class="filter-btn" id="btn-12" onclick="loadDataByDuration(12)">12h</button>
+            <button class="filter-btn" id="btn-24" onclick="loadDataByDuration(24)">1d</button>
+            <button class="filter-btn" id="btn-120" onclick="loadDataByDuration(120)">5d</button>
+            <button class="filter-btn" id="btn-168" onclick="loadDataByDuration(168)">7d</button>
+          </div>
+        </div>
+
+        <div class="chart-container">
+          <div class="chart-wrapper">
+            <div id="vibChart" style="height: 100%; width: 100%;"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // ==========================================
+    // 🟢 ตั้งค่ารายชื่ออุปกรณ์แบบจัดกลุ่ม (3 หน้า)
+    // ==========================================
+    const DEVICE_LIST = [
+      // ---------- หน้าที่ 1: CM10-11 ----------
+      { id: "NOED6522-18", label: "CM10 (6522-18)", color: "#3b82f6", group: "cm10-11" },
+      { id: "NOED6522-20", label: "CM10 (6522-20)", color: "#8b5cf6", group: "cm10-11" },
+      { id: "NOED6523-26", label: "CM10 (6523-26)", color: "#0ea5e9", group: "cm10-11" },
+      { id: "NOED6532-18", label: "CM11 (6532-18)", color: "#eab308", group: "cm10-11" },
+      { id: "NOED6532-20", label: "CM11 (6532-20)", color: "#ec4899", group: "cm10-11" },
+      { id: "NOED6533-26", label: "CM11 (6533-26)", color: "#f43f5e", group: "cm10-11" },
+      { id: "NOED6511-23", label: "CLINKER (6511-23)", color: "#ff5722", group: "cm10-11" },
+      { id: "NOED6511-25", label: "CLINKER (6511-25)", color: "#00b06f", group: "cm10-11" },
+      { id: "NOED6413-03", label: "GYP (6413-03)", color: "#14b8a6", group: "cm10-11" },
+
+      // ---------- หน้าที่ 2: CM7-9 ----------
+      { id: "NOED542-22",  label: "CM9 (542-22)", color: "#3b82f6", group: "cm7-9" },
+      { id: "NOED522-23",  label: "CM7 (522-23)", color: "#8b5cf6", group: "cm7-9" },
+      { id: "NOED511-23",  label: "CLINKER (511-23)", color: "#ff5722", group: "cm7-9" },
+      { id: "NOED511-25",  label: "CLINKER (511-25)", color: "#00b06f", group: "cm7-9" },
+      { id: "NOED413-03",  label: "GYP (413-03)", color: "#14b8a6", group: "cm7-9" },
+
+      // ---------- หน้าที่ 3: CM5-6 ----------
+      { id: "NOEDZ5J07",   label: "CM5 (Z5J07)", color: "#3b82f6", group: "cm5-6" },
+      { id: "NOEDZ6J07",   label: "CM6 (Z6J07)", color: "#8b5cf6", group: "cm5-6" },
+      { id: "NOEDU5J7",    label: "CLINKER (U5J7)", color: "#ff5722", group: "cm5-6" },
+      { id: "NOEDU6J17",   label: "CLINKER (U6J17)", color: "#00b06f", group: "cm5-6" }
+    ];
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCCSwEUELEQkE0kqXeDJ4526zC_yAaNPPU", 
+      databaseURL: "https://smart-vibrationcm-default-rtdb.asia-southeast1.firebasedatabase.app" 
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let alarmLimit = parseFloat(localStorage.getItem('vibAlarmLimit')) || 40.0;
+    let latestValues = {}; 
+    let currentTabGroup = 'cm10-11'; // หน้าเริ่มต้น
+
+    let myChart; 
+    let sparkCharts = {}; 
+    let currentDurationHours = 6; 
+    let activeNode = null; 
+    let isModalOpen = false;
+
+    let globalRecords = {}; 
+    let alertStatus = {}; 
+
+    const alarmSound = new Audio('https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg');
+    alarmSound.loop = true; 
+    let isSoundEnabled = false;
+
+    const sparklineOptions = {
+      chart: { type: 'line', width: '100%', height: '100%', sparkline: { enabled: true }, animations: { enabled: false } },
+      stroke: { curve: 'smooth', width: 2.5 },
+      tooltip: { fixed: { enabled: false }, x: { show: false }, y: { title: { formatter: () => '' } }, marker: { show: false } }
+    };
+
+    // 🟢 สลับหน้า Tabs 
+    function switchTab(group) {
+      currentTabGroup = group;
+      
+      // อัปเดตสีปุ่ม Tab
+      document.querySelectorAll('.main-tab-btn').forEach(btn => {
+        if(btn.dataset.group === group) btn.classList.add('active');
+        else btn.classList.remove('active');
+      });
+
+      // ซ่อน-โชว์ การ์ดของแต่ละหน้า
+      DEVICE_LIST.forEach(dev => {
+        const card = document.getElementById(`card-${dev.id}`);
+        if(card) {
+          card.style.display = (dev.group === group) ? 'flex' : 'none';
+        }
+      });
+      
+      // รีเฟรชให้กราฟ ApexCharts จัดระเบียบใหม่เวลาเปิดหน้าขึ้นมา
+      window.dispatchEvent(new Event('resize'));
+    }
+
+    function setAlarmLimit() {
+      let userInput = prompt("กำหนดค่าความสั่นสะเทือน (mm/s) ที่ต้องการให้กะพริบแจ้งเตือน:", alarmLimit);
+      
+      if (userInput !== null && userInput.trim() !== "") {
+        let newLimit = parseFloat(userInput);
+        if (!isNaN(newLimit) && newLimit > 0) {
+          alarmLimit = newLimit;
+          localStorage.setItem('vibAlarmLimit', alarmLimit); 
+          document.getElementById('alarm-display').innerText = alarmLimit; 
+          
+          DEVICE_LIST.forEach(dev => {
+             if (latestValues[dev.id] !== undefined) {
+                 const card = document.getElementById(`card-${dev.id}`);
+                 if (latestValues[dev.id] >= alarmLimit) {
+                     card.classList.add('alert-danger');
+                     alertStatus[dev.id] = true;
+                 } else {
+                     card.classList.remove('alert-danger');
+                     alertStatus[dev.id] = false;
+                 }
+             }
+          });
+          triggerAlarmLogic(); 
+
+          if (isModalOpen) loadDataByDuration(currentDurationHours);
+          
+        } else {
+          alert("กรุณากรอกเฉพาะตัวเลขที่มากกว่า 0 เท่านั้นครับ");
+        }
+      }
+    }
+
+    function initializeDashboard() {
+      document.getElementById('alarm-display').innerText = alarmLimit;
+
+      const container = document.getElementById('devices-container');
+      container.innerHTML = ''; 
+      
+      DEVICE_LIST.forEach(dev => {
+        alertStatus[dev.id] = false;
+        container.innerHTML += `
+          <div class="status-card" id="card-${dev.id}" onclick="openModal('${dev.id}')" style="display: none;">
+            <div class="card-info">
+              <h3>${dev.label}</h3>
+              <div class="value" id="val-${dev.id}">0.00 <span>mm/s</span></div>
+              <div class="time" id="time-${dev.id}"><i class="fa-regular fa-clock"></i> --:--:--</div>
+            </div>
+            <div class="sparkline-container" id="spark-${dev.id}"></div>
+          </div>
+        `;
+      });
+
+      DEVICE_LIST.forEach(dev => {
+        sparkCharts[dev.id] = new ApexCharts(document.querySelector(`#spark-${dev.id}`), { 
+          ...sparklineOptions, colors: [dev.color], series: [{ data: [] }] 
+        });
+        sparkCharts[dev.id].render();
+      });
+
+      // สั่งให้เปิดหน้า CM10-11 เป็นค่าเริ่มต้น
+      switchTab('cm10-11');
+    }
+
+    function toggleSound() {
+      isSoundEnabled = !isSoundEnabled;
+      const soundBtn = document.getElementById('sound-toggle');
+      if (isSoundEnabled) {
+        soundBtn.innerHTML = '<i class="fa-solid fa-bell"></i> เปิดเสียง';
+        soundBtn.style.background = '#ef4444'; soundBtn.style.color = 'white';
+        alarmSound.play().then(() => alarmSound.pause()).catch(e => console.log(e));
+      } else {
+        soundBtn.innerHTML = '<i class="fa-solid fa-bell-slash"></i> ปิดเสียง';
+        soundBtn.style.background = 'var(--theme-btn-bg)'; soundBtn.style.color = 'var(--theme-btn-text)';
+        alarmSound.pause(); alarmSound.currentTime = 0;
+      }
+      triggerAlarmLogic();
+    }
+
+    function triggerAlarmLogic() {
+      const hasAlarm = Object.values(alertStatus).some(status => status === true);
+      if (hasAlarm) {
+        if (isSoundEnabled && alarmSound.paused) alarmSound.play().catch(err => console.log(err));
+      } else {
+        alarmSound.pause(); alarmSound.currentTime = 0; 
+      }
+    }
+
+    function listenLiveStatus() {
+      DEVICE_LIST.forEach(dev => {
+        db.ref(`Vibration_Logs/${dev.id}`).limitToLast(1).on('value', snap => {
+          snap.forEach(child => {
+            let data = child.val();
+            let currentVal = data.ax;
+            
+            if (currentVal !== undefined && currentVal !== null) {
+                latestValues[dev.id] = currentVal;
+                
+                document.getElementById(`val-${dev.id}`).innerHTML = currentVal.toFixed(2) + " <span>mm/s</span>";
+                document.getElementById(`time-${dev.id}`).innerHTML = `<i class="fa-regular fa-clock"></i> ` + dayjs(data.gatewayEpoch * 1000).format('HH:mm:ss');
+                
+                const card = document.getElementById(`card-${dev.id}`);
+                
+                if (currentVal >= alarmLimit) { 
+                    card.classList.add('alert-danger'); 
+                    alertStatus[dev.id] = true; 
+                } else { 
+                    card.classList.remove('alert-danger'); 
+                    alertStatus[dev.id] = false; 
+                }
+                triggerAlarmLogic();
+            }
+          });
+        });
+      });
+    }
+
+    function openModal(nodeId) {
+      activeNode = nodeId;
+      isModalOpen = true;
+      const activeDev = DEVICE_LIST.find(d => d.id === nodeId);
+      
+      document.getElementById('modal-title').innerHTML = `<i class="fa-solid fa-chart-line" style="color: ${activeDev.color}; margin-right:6px;"></i> ${activeDev.label}`;
+      
+      const modal = document.getElementById('chartModal');
+      modal.style.display = 'flex';
+      setTimeout(() => { modal.classList.add('show'); window.dispatchEvent(new Event('resize')); }, 10); 
+
+      loadDataByDuration(currentDurationHours);
+    }
+
+    function closeModal() {
+      isModalOpen = false;
+      document.getElementById('chartModal').classList.remove('show');
+      setTimeout(() => document.getElementById('chartModal').style.display = 'none', 250);
+    }
+    function closeModalOutside(event) { if (event.target.id === 'chartModal') closeModal(); }
+
+    function renderBigChart(labels, dataAx, dataAcc, themeColor) {
+      const isDark = document.body.classList.contains('dark-mode');
+      const textColor = isDark ? '#8c96a5' : '#6b7280';
+      const gridColor = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)';
+      const peakColor = '#3b82f6'; 
+      const isMobile = window.innerWidth <= 768;
+
+      const options = {
+        series: [
+          { name: 'RMS (ax)', type: 'area', data: dataAx },
+          { name: 'Max Peak (accMag)', type: 'line', data: dataAcc }
+        ],
+        chart: { 
+            height: '100%', fontFamily: "'Inter', 'Prompt', sans-serif", 
+            background: 'transparent', animations: { enabled: false }, 
+            toolbar: { show: false }, zoom: { enabled: false }, selection: { enabled: false } 
+        },
+        colors: [themeColor, peakColor],
+        dataLabels: { enabled: false },
+        stroke: { curve: 'smooth', width: [2, 2.5] }, 
+        fill: { type: ['gradient', 'solid'], gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.0, stops: [0, 100] } },
+        legend: { show: true, position: 'top', horizontalAlign: 'right', labels: { colors: textColor }, markers: { radius: 12 } },
+        xaxis: {
+          categories: labels, tickAmount: isMobile ? 4 : 6, 
+          labels: { style: { colors: textColor, fontSize: '10px' }, hideOverlappingLabels: true, rotate: isMobile ? 0 : -45 },
+          axisBorder: { show: false }, axisTicks: { show: false }
+        },
+        yaxis: [
+          {
+            seriesName: 'RMS (ax)', 
+            min: 0, 
+            max: function(max) { return max < (alarmLimit + 10) ? (alarmLimit + 10) : max; },
+            labels: { style: { colors: textColor, fontSize: '11px', fontWeight: 500 }, formatter: function (val) { return (val !== undefined && val !== null) ? val.toFixed(2) : ''; } }, 
+            title: { text: 'RMS (mm/s)', style: { color: themeColor, fontSize: '11px', fontWeight: 600 } }
+          },
+          {
+            seriesName: 'Max Peak (accMag)', 
+            opposite: true, 
+            min: 0, 
+            labels: { style: { colors: textColor, fontSize: '11px', fontWeight: 500 }, formatter: function (val) { return (val !== undefined && val !== null) ? val.toFixed(2) : ''; } }, 
+            title: { text: 'Peak (g)', style: { color: peakColor, fontSize: '11px', fontWeight: 600 } }
+          }
+        ],
+        grid: { borderColor: gridColor, strokeDashArray: 4, xaxis: { lines: { show: false } }, yaxis: { lines: { show: true } }, padding: { left: 6, right: 6 } },
+        theme: { mode: isDark ? 'dark' : 'light' },
+        annotations: { 
+            yaxis: [{ 
+                y: alarmLimit, 
+                yAxisIndex: 0, 
+                borderColor: '#ef4444', strokeDashArray: 5, borderWidth: 1.5, 
+                label: { borderColor: 'transparent', style: { color: '#fff', background: '#ef4444', fontSize: '10px', fontWeight: 600, padding: { left: 6, right: 6, top: 3, bottom: 3 } }, text: 'ALARM: ' + alarmLimit } 
+            }] 
+        }
+      };
+
+      if (!myChart) {
+        myChart = new ApexCharts(document.querySelector("#vibChart"), options);
+        myChart.render();
+      } else {
+        myChart.updateOptions(options, false, false); 
+      }
+    }
+
+    async function loadDataByDuration(hours) {
+      currentDurationHours = hours;
+      document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById('btn-' + hours);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const now = Math.floor(Date.now() / 1000);
+      const startTime = now - (hours * 3600);
+      await fetchFirebaseRange(startTime, now);
+    }
+
+    async function fetchFirebaseRange(start, end) {
+      const promises = DEVICE_LIST.map(dev => 
+        db.ref(`Vibration_Logs/${dev.id}`).orderByChild('gatewayEpoch').startAt(start).endAt(end).once('value')
+      );
+      
+      const snapshots = await Promise.all(promises);
+
+      const isMobile = window.innerWidth <= 768;
+      const timeFormat = (isMobile && currentDurationHours <= 24) ? 'HH:mm' : 'DD/MM HH:mm';
+
+      snapshots.forEach((snap, index) => {
+        const devId = DEVICE_LIST[index].id;
+        
+        let deviceLabels = [];
+        let plotAx = [];
+        let plotAcc = [];
+        let lastTemp = null;
+
+        snap.forEach(child => {
+          let d = child.val(); 
+          if(d.gatewayEpoch) {
+              let t = dayjs(d.gatewayEpoch * 1000).format(timeFormat); 
+              
+              if (deviceLabels.length === 0 || deviceLabels[deviceLabels.length - 1] !== t) {
+                  deviceLabels.push(t);
+                  plotAx.push(d.ax);
+                  plotAcc.push(d.accMag);
+              } else {
+                  plotAx[plotAx.length - 1] = d.ax;
+                  plotAcc[plotAcc.length - 1] = d.accMag;
+              }
+              if(d.temp) lastTemp = d.temp;
+          }
+        });
+
+        sparkCharts[devId].updateSeries([{ data: plotAx.slice(-30) }]);
+
+        if(!globalRecords[devId]) globalRecords[devId] = {};
+        globalRecords[devId].labels = deviceLabels; 
+        globalRecords[devId].plotAx = plotAx;
+        globalRecords[devId].plotAcc = plotAcc;
+        globalRecords[devId].lastTemp = lastTemp;
+      });
+
+      if (isModalOpen && activeNode) {
+        const devData = globalRecords[activeNode];
+        const activeDev = DEVICE_LIST.find(d => d.id === activeNode);
+        
+        const tempDisplay = document.getElementById('modal-temp');
+        if (devData.lastTemp !== undefined && devData.lastTemp !== null) {
+          tempDisplay.innerText = devData.lastTemp.toFixed(1) + ' °C';
+          tempDisplay.style.color = devData.lastTemp > 60 ? '#ef4444' : 'var(--text-main)';
+        } else {
+          tempDisplay.innerText = '-- °C';
+        }
+
+        renderBigChart(devData.labels, devData.plotAx, devData.plotAcc, activeDev.color);
+      }
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark-mode');
+      const themeBtn = document.getElementById('theme-toggle');
+      if (document.body.classList.contains('dark-mode')) {
+        themeBtn.innerHTML = '<i class="fa-solid fa-sun"></i> สว่าง';
+      } else {
+        themeBtn.innerHTML = '<i class="fa-solid fa-moon"></i> กลางคืน';
+      }
+      loadDataByDuration(currentDurationHours);
+    }
+
+    setInterval(() => { loadDataByDuration(currentDurationHours); }, 60000);
+
+    initializeDashboard();
+    listenLiveStatus();
+    loadDataByDuration(6); 
+  </script>
+</body>
+</html>
