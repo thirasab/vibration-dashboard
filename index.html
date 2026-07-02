@@ -137,6 +137,9 @@
         <button class="btn-action-toggle" onclick="setAlarmLimit()" style="background: var(--accent); color: white;">
           <i class="fa-solid fa-triangle-exclamation"></i> Alarm: <span id="alarm-display">40</span>
         </button>
+        <button class="btn-action-toggle" id="auto-toggle" onclick="toggleAutoMode()" style="background: var(--primary); color: white;">
+          <i class="fa-solid fa-rotate"></i> <span>Auto (10s)</span>
+        </button>
         <button class="btn-action-toggle" id="sound-toggle" onclick="toggleSound()">
           <i class="fa-solid fa-bell-slash"></i> ปิดเสียง
         </button>
@@ -232,7 +235,14 @@
 
     let alarmLimit = parseFloat(localStorage.getItem('vibAlarmLimit')) || 40.0;
     let latestValues = {}; 
-    let currentTabGroup = 'cm10-11'; // หน้าเริ่มต้น
+    let currentTabGroup = 'cm10-11'; 
+
+    // 🟢 ตัวแปรสำหรับระบบ Auto Switch (Countdown)
+    let isAutoMode = true; 
+    let autoTimer = null;
+    const tabCycle = ['cm10-11', 'cm7-9', 'cm5-6'];
+    let autoRemaining = 10; 
+    const AUTO_MAX_TIME = 10;
 
     let myChart; 
     let sparkCharts = {}; 
@@ -253,8 +263,75 @@
       tooltip: { fixed: { enabled: false }, x: { show: false }, y: { title: { formatter: () => '' } }, marker: { show: false } }
     };
 
-    // 🟢 สลับหน้า Tabs 
+    // 🟢 ฟังก์ชันควบคุมการทำงานแบบ Auto/Manual
+    function toggleAutoMode() {
+      isAutoMode = !isAutoMode;
+      if (isAutoMode) {
+        autoRemaining = AUTO_MAX_TIME; // รีเซ็ตเวลากลับเป็น 10
+        startAutoTimer();
+      } else {
+        stopAutoTimer();
+      }
+      updateAutoModeUI();
+    }
+
+    // 🟢 อัปเดตข้อความบนปุ่มให้โชว์เวลานับถอยหลัง
+    function updateAutoModeUI() {
+      const btn = document.getElementById('auto-toggle');
+      if (!btn) return;
+      if (isAutoMode) {
+        btn.innerHTML = `<i class="fa-solid fa-rotate"></i> <span>Auto (${autoRemaining}s)</span>`;
+        btn.style.background = 'var(--primary)';
+        btn.style.color = '#ffffff';
+      } else {
+        btn.innerHTML = '<i class="fa-solid fa-hand-pointer"></i> <span>Manual</span>';
+        btn.style.background = 'var(--theme-btn-bg)';
+        btn.style.color = 'var(--theme-btn-text)';
+      }
+    }
+
+    function startAutoTimer() {
+      stopAutoTimer();
+      autoTimer = setInterval(() => {
+        // หยุดนับเวลาชั่วคราวถ้าเปิดกราฟ (Modal) ดูอยู่
+        if (isModalOpen) return; 
+        
+        autoRemaining--; // ลดเวลาลงทีละ 1 วินาที
+        updateAutoModeUI();
+
+        // เมื่อเวลานับถึง 0 ให้สลับหน้า
+        if (autoRemaining <= 0) {
+          autoRemaining = AUTO_MAX_TIME;
+          
+          let currentIndex = tabCycle.indexOf(currentTabGroup);
+          let nextIndex = (currentIndex + 1) % tabCycle.length;
+          
+          switchTabCore(tabCycle[nextIndex]); 
+        }
+      }, 1000); // 1 วินาทีทำงาน 1 ครั้ง
+    }
+
+    function stopAutoTimer() {
+      if (autoTimer) {
+        clearInterval(autoTimer);
+        autoTimer = null;
+      }
+    }
+
+    // 🟢 ฟังก์ชันสลับหน้าหลัก (กรณีผู้ใช้กดเปลี่ยนเอง)
     function switchTab(group) {
+      switchTabCore(group);
+      
+      // หากอยู่ในโหมด Auto และมีการคลิกเปลี่ยนหน้าเอง ให้เริ่มนับเวลา 10 วินาทีใหม่
+      if (isAutoMode) {
+        autoRemaining = AUTO_MAX_TIME;
+        updateAutoModeUI();
+        startAutoTimer();
+      }
+    }
+
+    // 🟢 ฟังก์ชันจัดการเปลี่ยนหน้าจอ UI แบบเจาะจง
+    function switchTabCore(group) {
       currentTabGroup = group;
       
       // อัปเดตสีปุ่ม Tab
@@ -271,7 +348,7 @@
         }
       });
       
-      // รีเฟรชให้กราฟ ApexCharts จัดระเบียบใหม่เวลาเปิดหน้าขึ้นมา
+      // รีเฟรชให้กราฟ ApexCharts จัดระเบียบใหม่
       window.dispatchEvent(new Event('resize'));
     }
 
@@ -308,6 +385,10 @@
     }
 
     function initializeDashboard() {
+      // 🟢 เริ่มต้นระบบ Auto Countdown ทันทีเมื่อโหลดหน้าเว็บ
+      updateAutoModeUI();
+      startAutoTimer();
+
       document.getElementById('alarm-display').innerText = alarmLimit;
 
       const container = document.getElementById('devices-container');
@@ -334,8 +415,8 @@
         sparkCharts[dev.id].render();
       });
 
-      // สั่งให้เปิดหน้า CM10-11 เป็นค่าเริ่มต้น
-      switchTab('cm10-11');
+      // สั่งให้เปิดหน้าแรกเป็นค่าเริ่มต้น โดยไม่กระทบ Timer
+      switchTabCore(tabCycle[0]);
     }
 
     function toggleSound() {
