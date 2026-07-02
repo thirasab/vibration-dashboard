@@ -200,13 +200,20 @@
     // ==========================================
     // 🟢 ตั้งค่ารายชื่ออุปกรณ์แบบจัดกลุ่ม (3 หน้า)
     // ==========================================
+ // ==========================================
+    // 🟢 ตั้งค่ารายชื่ออุปกรณ์แบบจัดกลุ่ม (3 หน้า)
+    // ==========================================
     const DEVICE_LIST = [
       // ---------- หน้าที่ 1: CM10-11 ----------
       { id: "NOED6522-18", label: "CM10 (6522-18)", color: "#3b82f6", group: "cm10-11" },
+      { id: "NOED6522-18TOP", label: "CM10 (6522-18TOP)", color: "#2563eb", group: "cm10-11" },
       { id: "NOED6522-20", label: "CM10 (6522-20)", color: "#8b5cf6", group: "cm10-11" },
+      { id: "NOED6522-20TOP", label: "CM10 (6522-20TOP)", color: "#7c3aed", group: "cm10-11" },
       { id: "NOED6523-26", label: "CM10 (6523-26)", color: "#0ea5e9", group: "cm10-11" },
       { id: "NOED6532-18", label: "CM11 (6532-18)", color: "#eab308", group: "cm10-11" },
+      { id: "NOED6532-18TOP", label: "CM11 (6532-18TOP)", color: "#ca8a04", group: "cm10-11" },
       { id: "NOED6532-20", label: "CM11 (6532-20)", color: "#ec4899", group: "cm10-11" },
+      { id: "NOED6532-20TOP", label: "CM11 (6532-20TOP)", color: "#db2777", group: "cm10-11" },
       { id: "NOED6533-26", label: "CM11 (6533-26)", color: "#f43f5e", group: "cm10-11" },
       { id: "NOED6511-23", label: "CLINKER (6511-23)", color: "#ff5722", group: "cm10-11" },
       { id: "NOED6511-25", label: "CLINKER (6511-25)", color: "#00b06f", group: "cm10-11" },
@@ -493,11 +500,15 @@
     }
     function closeModalOutside(event) { if (event.target.id === 'chartModal') closeModal(); }
 
-    function renderBigChart(labels, dataAx, dataAcc, themeColor) {
+function renderBigChart(labels, dataAx, dataAcc, themeColor) {
       const isDark = document.body.classList.contains('dark-mode');
       const textColor = isDark ? '#8c96a5' : '#6b7280';
       const gridColor = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)';
-      const peakColor = '#3b82f6'; 
+      
+      // 🔴 กำหนดสีของกราฟตามที่ต้องการ
+      const vibColor = '#ef4444';  // สีแดง สำหรับ RMS (ax)
+      const peakColor = '#0ea5e9'; // สีฟ้า สำหรับ Max Peak (accMag)
+      
       const isMobile = window.innerWidth <= 768;
 
       const options = {
@@ -510,7 +521,8 @@
             background: 'transparent', animations: { enabled: false }, 
             toolbar: { show: false }, zoom: { enabled: false }, selection: { enabled: false } 
         },
-        colors: [themeColor, peakColor],
+        // ใช้สีที่กำหนดใหม่แทน themeColor เดิม
+        colors: [vibColor, peakColor],
         dataLabels: { enabled: false },
         stroke: { curve: 'smooth', width: [2, 2.5] }, 
         fill: { type: ['gradient', 'solid'], gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.0, stops: [0, 100] } },
@@ -526,14 +538,14 @@
             min: 0, 
             max: function(max) { return max < (alarmLimit + 10) ? (alarmLimit + 10) : max; },
             labels: { style: { colors: textColor, fontSize: '11px', fontWeight: 500 }, formatter: function (val) { return (val !== undefined && val !== null) ? val.toFixed(2) : ''; } }, 
-            title: { text: 'RMS (mm/s)', style: { color: themeColor, fontSize: '11px', fontWeight: 600 } }
+            title: { text: 'RMS (mm/s)', style: { color: vibColor, fontSize: '11px', fontWeight: 600 } } // อัปเดตสีตัวหนังสือให้ตรงกราฟ
           },
           {
             seriesName: 'Max Peak (accMag)', 
             opposite: true, 
             min: 0, 
             labels: { style: { colors: textColor, fontSize: '11px', fontWeight: 500 }, formatter: function (val) { return (val !== undefined && val !== null) ? val.toFixed(2) : ''; } }, 
-            title: { text: 'Peak (g)', style: { color: peakColor, fontSize: '11px', fontWeight: 600 } }
+            title: { text: 'Peak (g)', style: { color: peakColor, fontSize: '11px', fontWeight: 600 } } // อัปเดตสีตัวหนังสือให้ตรงกราฟ
           }
         ],
         grid: { borderColor: gridColor, strokeDashArray: 4, xaxis: { lines: { show: false } }, yaxis: { lines: { show: true } }, padding: { left: 6, right: 6 } },
