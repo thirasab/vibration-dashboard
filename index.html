@@ -76,7 +76,6 @@
     .card-info { flex: 1; }
     .card-info h3 { margin: 0 0 8px 0; font-size: 14px; color: var(--text-sub); font-weight: 600; }
     
-    /* สไตล์สำหรับการแสดงผลรวม Boot และ Head */
     .vib-value-container { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
     .vib-value-row { display: flex; align-items: baseline; gap: 8px; }
     .vib-value-row .v-label { font-size: 11px; font-weight: 700; color: var(--text-sub); width: 34px; background: rgba(107, 114, 128, 0.1); padding: 2px 4px; border-radius: 4px; text-align: center; }
@@ -85,7 +84,6 @@
     
     .card-info .time { font-family: 'Inter', sans-serif; font-size: 11px; color: var(--text-sub); display: flex; align-items: center; gap: 4px; }
     
-    /* 🟢 สไตล์การจัดวางกราฟเส้นจิ๋วคู่ */
     .charts-wrapper { display: flex; flex-direction: column; gap: 4px; justify-content: center; align-items: flex-end; }
     .sparkline-container { width: 100px; height: 35px; pointer-events: none; }
 
@@ -213,17 +211,18 @@
     // ==========================================
     // 🟢 ตั้งค่ารายชื่ออุปกรณ์แบบจัดกลุ่ม (3 หน้า)
     // ==========================================
+    // ลบคำว่า Head ออกจาก label เพื่อไม่ให้ชื่อซ้ำซ้อนตอนสร้างกราฟ
     const DEVICE_LIST = [
       // ---------- หน้าที่ 1: CM10-11 ----------
       { id: "NOED6522-18", label: "CM10 (6522-18)", color: "#3b82f6", group: "cm10-11" },
-      { id: "NOED6522-18TOP", label: "CM10 (6522-18Head)", color: "#2563eb", group: "cm10-11" },
+      { id: "NOED6522-18TOP", label: "CM10 (6522-18)", color: "#2563eb", group: "cm10-11" },
       { id: "NOED6522-20", label: "CM10 (6522-20)", color: "#8b5cf6", group: "cm10-11" },
-      { id: "NOED6522-20TOP", label: "CM10 (6522-20Head)", color: "#7c3aed", group: "cm10-11" },
+      { id: "NOED6522-20TOP", label: "CM10 (6522-20)", color: "#7c3aed", group: "cm10-11" },
       { id: "NOED6523-26", label: "CM10 (6523-26)", color: "#0ea5e9", group: "cm10-11" },
       { id: "NOED6532-18", label: "CM11 (6532-18)", color: "#eab308", group: "cm10-11" },
-      { id: "NOED6532-18TOP", label: "CM11 (6532-18Head)", color: "#ca8a04", group: "cm10-11" },
+      { id: "NOED6532-18TOP", label: "CM11 (6532-18)", color: "#ca8a04", group: "cm10-11" },
       { id: "NOED6532-20", label: "CM11 (6532-20)", color: "#ec4899", group: "cm10-11" },
-      { id: "NOED6532-20TOP", label: "CM11 (6532-20Head)", color: "#db2777", group: "cm10-11" },
+      { id: "NOED6532-20TOP", label: "CM11 (6532-20)", color: "#db2777", group: "cm10-11" },
       { id: "NOED6533-26", label: "CM11 (6533-26)", color: "#f43f5e", group: "cm10-11" },
       { id: "NOED6511-23", label: "CLINKER (6511-23)", color: "#ff5722", group: "cm10-11" },
       { id: "NOED6511-25", label: "CLINKER (6511-25)", color: "#00b06f", group: "cm10-11" },
@@ -260,8 +259,8 @@
     let autoRemaining = 10; 
     const AUTO_MAX_TIME = 10;
 
-    let myChart; 
-    let myChartTop; 
+    let myChart = null; 
+    let myChartTop = null; 
     let sparkCharts = {}; 
     let currentDurationHours = 6; 
     
@@ -348,7 +347,6 @@
         else btn.classList.remove('active');
       });
 
-      // โชว์/ซ่อน เฉพาะการ์ดตัว Base
       const bases = DEVICE_LIST.filter(d => !d.id.endsWith('TOP'));
       bases.forEach(dev => {
         const card = document.getElementById(`card-${dev.id}`);
@@ -370,7 +368,6 @@
           localStorage.setItem('vibAlarmLimit', alarmLimit); 
           document.getElementById('alarm-display').innerText = alarmLimit; 
           
-          // ตรวจสอบค่า Alert ใหม่อีกครั้ง
           DEVICE_LIST.forEach(dev => {
              if (latestValues[dev.id] !== undefined) {
                  if (latestValues[dev.id] >= alarmLimit) {
@@ -412,7 +409,6 @@
       const container = document.getElementById('devices-container');
       container.innerHTML = ''; 
       
-      // ดึงเฉพาะตัว Base (ตัวที่ไม่มีคำว่า TOP) มาสร้างการ์ด
       const bases = DEVICE_LIST.filter(d => !d.id.endsWith('TOP'));
       
       bases.forEach(baseDev => {
@@ -430,7 +426,6 @@
             </div>`;
         }
 
-        // 🟢 สร้างโครงสร้างใหม่เพื่อรองรับ 2 กราฟซ้อนกัน
         container.innerHTML += `
           <div class="status-card" id="card-${baseDev.id}" onclick="openModal('${baseDev.id}')" style="display: none;">
             <div class="card-info">
@@ -452,7 +447,6 @@
         `;
       });
 
-      // สร้าง Sparkline ให้กับทุก Device ที่มี Element ID ในหน้า (ทั้ง Boot และ Head)
       DEVICE_LIST.forEach(dev => {
         const sparkEl = document.querySelector(`#spark-${dev.id}`);
         if (sparkEl) {
@@ -500,7 +494,6 @@
             if (currentVal !== undefined && currentVal !== null) {
                 latestValues[dev.id] = currentVal;
                 
-                // อัปเดตตัวเลขในการ์ด
                 const valEl = document.getElementById(`val-${dev.id}`);
                 if (valEl) {
                     valEl.innerHTML = currentVal.toFixed(2) + " <span>mm/s</span>";
@@ -508,19 +501,16 @@
                 
                 let baseId = dev.id.endsWith('TOP') ? dev.id.replace('TOP', '') : dev.id;
                 
-                // อัปเดตเวลาเฉพาะให้ส่วนฐาน
                 if (!dev.id.endsWith('TOP')) {
                     document.getElementById(`time-${baseId}`).innerHTML = `<i class="fa-regular fa-clock"></i> ` + dayjs(data.gatewayEpoch * 1000).format('HH:mm:ss');
                 }
                 
-                // เช็ค Alarm
                 if (currentVal >= alarmLimit) { 
                     alertStatus[dev.id] = true; 
                 } else { 
                     alertStatus[dev.id] = false; 
                 }
 
-                // กระพริบการ์ดถ้าตัวใดตัวหนึ่งแจ้งเตือน
                 let topId = baseId + 'TOP';
                 let hasAlarm = alertStatus[baseId] === true || alertStatus[topId] === true;
                 const card = document.getElementById(`card-${baseId}`);
@@ -554,6 +544,10 @@
       modal.style.display = 'flex';
       setTimeout(() => { modal.classList.add('show'); window.dispatchEvent(new Event('resize')); }, 10); 
 
+      // 🔴 เคลียร์กราฟเก่าทิ้งทันทีที่เปิด ป้องกันชื่อและข้อมูลเก่าค้าง
+      if (myChart) { myChart.destroy(); myChart = null; }
+      if (myChartTop) { myChartTop.destroy(); myChartTop = null; }
+
       loadDataByDuration(currentDurationHours);
     }
 
@@ -575,11 +569,14 @@
       const isMobile = window.innerWidth <= 768;
       const chartHeight = topId ? 280 : 350;
 
-      const getChartOptions = (data, title, chartId) => {
+      // 🟢 เพิ่มตัวแปร seriesPrefix เพื่อใช้ตั้งชื่อใน Tooltip ป้องกันความสับสน
+      const getChartOptions = (data, title, seriesPrefix, chartId) => {
+          // ซ่อนคำว่า TOP ออกจากชื่อแกนข้อมูล
+          const prefixText = seriesPrefix ? `${seriesPrefix} ` : '';
           return {
             series: [
-              { name: 'RMS (ax)', type: 'area', data: data.plotAx },
-              { name: 'Max Peak (accMag)', type: 'line', data: data.plotAcc }
+              { name: `${prefixText}RMS`, type: 'area', data: data.plotAx },
+              { name: `${prefixText}Peak`, type: 'line', data: data.plotAcc }
             ],
             chart: { 
                 id: chartId,
@@ -594,7 +591,7 @@
             stroke: { curve: 'smooth', width: [2, 2.5] }, 
             fill: { type: ['gradient', 'solid'], gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.0, stops: [0, 100] } },
             legend: { show: true, position: 'top', horizontalAlign: 'right', labels: { colors: textColor }, markers: { radius: 12 } },
-            title: { text: title, align: 'left', style: { color: textColor, fontSize: '12px', fontWeight: 600 } },
+            title: { text: title, align: 'left', style: { color: textColor, fontSize: '13px', fontWeight: 600 } },
             xaxis: {
               categories: data.labels, tickAmount: isMobile ? 4 : 6, 
               labels: { style: { colors: textColor, fontSize: '10px' }, hideOverlappingLabels: true, rotate: isMobile ? 0 : -45 },
@@ -602,14 +599,14 @@
             },
             yaxis: [
               {
-                seriesName: 'RMS (ax)', 
+                seriesName: `${prefixText}RMS`, 
                 min: 0, 
                 max: function(max) { return max < (alarmLimit + 10) ? (alarmLimit + 10) : max; },
                 labels: { style: { colors: textColor, fontSize: '11px', fontWeight: 500 }, formatter: function (val) { return (val !== undefined && val !== null) ? val.toFixed(2) : ''; } }, 
                 title: { text: 'RMS (mm/s)', style: { color: vibColor, fontSize: '11px', fontWeight: 600 } } 
               },
               {
-                seriesName: 'Max Peak (accMag)', 
+                seriesName: `${prefixText}Peak`, 
                 opposite: true, 
                 min: 0, 
                 labels: { style: { colors: textColor, fontSize: '11px', fontWeight: 500 }, formatter: function (val) { return (val !== undefined && val !== null) ? val.toFixed(2) : ''; } }, 
@@ -630,9 +627,14 @@
       };
 
       const baseData = globalRecords[baseId];
+      if (!baseData) return;
+      
       const baseDev = DEVICE_LIST.find(d => d.id === baseId);
-      const titleBase = topId ? `Boot (${baseDev.id})` : baseDev.label;
-      const optionsBase = getChartOptions(baseData, titleBase, 'chart-base');
+      
+      // ตั้งชื่อกราฟตัว Base ให้ชัดเจน ไม่มีคำว่า TOP ปน
+      const titleBase = topId ? `Boot : ${baseDev.label}` : baseDev.label;
+      const prefixBase = topId ? 'Boot' : '';
+      const optionsBase = getChartOptions(baseData, titleBase, prefixBase, 'chart-base');
       
       if (!myChart) {
         myChart = new ApexCharts(document.querySelector("#vibChart"), optionsBase);
@@ -646,13 +648,18 @@
           chartTopDiv.style.display = 'block';
           const topData = globalRecords[topId];
           const topDev = DEVICE_LIST.find(d => d.id === topId);
-          const optionsTop = getChartOptions(topData, `Head (${topDev.id})`, 'chart-top');
           
-          if (!myChartTop) {
-              myChartTop = new ApexCharts(chartTopDiv, optionsTop);
-              myChartTop.render();
-          } else {
-              myChartTop.updateOptions(optionsTop, false, false);
+          if (topData) {
+              // ตั้งชื่อกราฟตัว TOP ให้แสดงคำว่า Head แทน
+              const titleTop = `Head : ${topDev.label}`;
+              const optionsTop = getChartOptions(topData, titleTop, 'Head', 'chart-top');
+              
+              if (!myChartTop) {
+                  myChartTop = new ApexCharts(chartTopDiv, optionsTop);
+                  myChartTop.render();
+              } else {
+                  myChartTop.updateOptions(optionsTop, false, false);
+              }
           }
       } else {
           chartTopDiv.style.display = 'none';
@@ -709,7 +716,6 @@
           }
         });
 
-        // 🟢 อัปเดตกราฟเส้นจิ๋วให้กับทุกกราฟที่มี (ทั้ง Boot และ Head)
         if (sparkCharts[devId]) {
             sparkCharts[devId].updateSeries([{ data: plotAx.slice(-30) }]);
         }
@@ -721,6 +727,7 @@
         globalRecords[devId].lastTemp = lastTemp;
       });
 
+      // ดึงข้อมูลเสร็จค่อยสั่งวาดกราฟ
       if (isModalOpen && activeNodeBase) {
         const devData = globalRecords[activeNodeBase];
         
