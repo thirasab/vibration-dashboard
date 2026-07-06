@@ -69,42 +69,51 @@
     .main-tab-btn { flex: 1; padding: 10px 16px; border: none; border-radius: 8px; cursor: pointer; background: transparent; color: var(--text-sub); font-family: 'Inter', 'Prompt', sans-serif; font-weight: 600; font-size: 14px; white-space: nowrap; transition: all 0.2s; }
     .main-tab-btn.active { background: var(--primary); color: #ffffff; box-shadow: 0 4px 10px rgba(0, 176, 111, 0.2); }
 
-    .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin-bottom: 20px; }
     .status-card { background: var(--card-bg); border-radius: 12px; padding: 16px 20px; box-shadow: var(--shadow); border: var(--border); display: flex; justify-content: space-between; align-items: center; transition: transform 0.15s; cursor: pointer; }
     .status-card:active { transform: scale(0.98); } 
 
-    .card-info { flex-grow: 1; margin-right: 12px; }
-    .card-info h3 { margin: 0 0 6px 0; font-size: 14px; color: var(--text-sub); font-weight: 600; }
-    .card-info .value { font-family: 'Inter', sans-serif; font-size: 26px; font-weight: 700; margin-bottom: 4px; line-height: 1.1; color: var(--text-main); }
-    .card-info .value span { font-family: 'Prompt', sans-serif; font-size: 13px; font-weight: 400; color: var(--text-sub); margin-left: 2px; }
-    .card-info .time { font-family: 'Inter', sans-serif; font-size: 11px; color: var(--text-sub); display: flex; align-items: center; gap: 4px; margin-top: 4px; }
-    .sparkline-container { width: 100px; height: 50px; pointer-events: none; flex-shrink: 0; }
+    .card-info { flex: 1; }
+    .card-info h3 { margin: 0 0 8px 0; font-size: 14px; color: var(--text-sub); font-weight: 600; }
+    
+    /* สไตล์สำหรับการแสดงผลรวม Boot และ Head */
+    .vib-value-container { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+    .vib-value-row { display: flex; align-items: baseline; gap: 8px; }
+    .vib-value-row .v-label { font-size: 11px; font-weight: 700; color: var(--text-sub); width: 34px; background: rgba(107, 114, 128, 0.1); padding: 2px 4px; border-radius: 4px; text-align: center; }
+    .vib-value-row .value { font-family: 'Inter', sans-serif; font-size: 24px; font-weight: 700; line-height: 1; color: var(--text-main); }
+    .vib-value-row .value span { font-family: 'Prompt', sans-serif; font-size: 11px; font-weight: 400; color: var(--text-sub); margin-left: 2px; }
+    
+    .card-info .time { font-family: 'Inter', sans-serif; font-size: 11px; color: var(--text-sub); display: flex; align-items: center; gap: 4px; }
+    .sparkline-container { width: 110px; height: 50px; pointer-events: none; }
 
     @keyframes flashDanger { 0%, 100% { background-color: var(--card-bg); border-color: var(--border); } 50% { background-color: rgba(239, 68, 68, 0.08); border-color: #ef4444; } }
     .alert-danger { animation: flashDanger 1s infinite !important; }
+    .alert-danger .value, .alert-danger h3, .alert-danger .v-label { color: #ef4444 !important; }
+    .alert-danger .v-label { background: rgba(239, 68, 68, 0.15); }
 
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); z-index: 1000; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.2s ease; }
     .modal-overlay.show { display: flex; opacity: 1; }
-    .modal-content { background: var(--bg-color); width: 100%; max-width: 950px; max-height: 85vh; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.4); border: var(--border); transform: scale(0.96); transition: all 0.25s cubic-bezier(0.1, 0.9, 0.2, 1); }
+    .modal-content { background: var(--bg-color); width: 100%; max-width: 900px; max-height: 90vh; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.4); border: var(--border); transform: scale(0.96); transition: all 0.25s cubic-bezier(0.1, 0.9, 0.2, 1); }
     .modal-overlay.show .modal-content { transform: scale(1); }
 
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0; }
     .modal-title { margin: 0; font-size: 18px; font-weight: 600; color: var(--header-color); }
     .close-btn { background: var(--btn-bg); color: var(--text-main); border: none; border-radius: 50%; width: 34px; height: 34px; cursor: pointer; display: flex; justify-content: center; align-items: center; }
     
-    .sensor-stats-bar { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; background: var(--card-bg); border: var(--border); border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; }
+    .sensor-stats-bar { display: flex; gap: 16px; align-items: center; background: var(--card-bg); border: var(--border); border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; }
     .stat-item { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-sub); }
-    .stat-item .val { font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 700; color: var(--text-main); }
-    .stat-item i { font-size: 15px; color: #f59e0b; }
+    .stat-item .val { font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 700; color: var(--text-main); }
+    .stat-item i { font-size: 16px; color: #f59e0b; }
 
-    .modal-body-scroll { flex-grow: 1; overflow-y: auto; overflow-x: hidden; }
+    .modal-body-scroll { flex-grow: 1; overflow-y: auto; overflow-x: hidden; padding-right: 4px; }
     .control-panel { background: var(--tab-bg); border-radius: 10px; padding: 4px; margin-bottom: 12px; }
     .btn-group { display: flex; gap: 2px; width: 100%; }
     button.filter-btn { flex: 1; padding: 8px 0; border: none; border-radius: 8px; cursor: pointer; background: transparent; color: var(--text-sub); font-family: 'Inter', 'Prompt', sans-serif; font-weight: 600; font-size: 13px; transition: all 0.2s; }
     button.filter-btn.active { background: var(--card-bg); color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
 
     .chart-container { background: var(--card-bg); border-radius: 12px; padding: 8px 4px 12px 4px; border: var(--border); width: 100%; }
-    .chart-wrapper { position: relative; height: 380px; width: 100%; }
+    .chart-wrapper { position: relative; width: 100%; display: flex; flex-direction: column; gap: 12px; }
+    .chart-instance { width: 100%; }
 
     @media (max-width: 768px) {
       body { padding: 12px; }
@@ -112,11 +121,11 @@
       .status-grid { grid-template-columns: 1fr; gap: 10px; }
       .modal-overlay { padding: 12px; } 
       .modal-content { max-height: 88vh; padding: 16px; }
-      .sensor-stats-bar { padding: 8px 12px; gap: 8px; }
-      .stat-item { font-size: 12px; width: 100%; }
-      .stat-item .val { font-size: 14px; }
-      .chart-wrapper { height: 320px; }
+      .sensor-stats-bar { padding: 8px 12px; }
+      .stat-item { font-size: 13px; }
+      .stat-item .val { font-size: 15px; }
       button.filter-btn { font-size: 12px; padding: 6px 0; }
+      .vib-value-row .value { font-size: 20px; }
     }
 
     .apexcharts-text { font-family: 'Inter', sans-serif !important; font-weight: 500; }
@@ -131,7 +140,7 @@
     <header>
       <div class="header-title">
         <h1><i class="fa-solid fa-wave-square" style="color: var(--primary); margin-right: 4px;"></i> มอนิเตอร์ความสั่นสะเทือน</h1>
-        <p>ข้อมูลเซ็นเซอร์แบบเรียลไทม์ (รวมกลุ่มเซ็นเซอร์หลัก + TOP)</p>
+        <p>ข้อมูลเซ็นเซอร์แบบเรียลไทม์</p>
       </div>
       <div class="header-actions">
         <button class="btn-action-toggle" onclick="setAlarmLimit()" style="background: var(--accent); color: white;">
@@ -166,8 +175,13 @@
         <button class="close-btn" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
-      <div class="sensor-stats-bar" id="modal-temp-bar">
+      <div class="sensor-stats-bar">
+        <div class="stat-item">
+          <i class="fa-solid fa-temperature-half"></i> 
+          <span>อุณหภูมิมอเตอร์:</span>
+          <span class="val" id="modal-temp">-- °C</span>
         </div>
+      </div>
 
       <div class="modal-body-scroll">
         <div class="control-panel">
@@ -183,7 +197,8 @@
 
         <div class="chart-container">
           <div class="chart-wrapper">
-            <div id="vibChart" style="height: 100%; width: 100%;"></div>
+            <div id="vibChart" class="chart-instance"></div>
+            <div id="vibChartTop" class="chart-instance" style="display: none;"></div>
           </div>
         </div>
       </div>
@@ -192,39 +207,38 @@
   </div>
 
   <script>
-    // ========================================================
-    // 🟢 RESTRUCTURED DEVICE LIST: รายชื่อกลุ่มเซ็นเซอร์
-    // ========================================================
+    // ==========================================
+    // 🟢 ตั้งค่ารายชื่ออุปกรณ์แบบจัดกลุ่ม (3 หน้า)
+    // ==========================================
     const DEVICE_LIST = [
       // ---------- หน้าที่ 1: CM10-11 ----------
-      { id: "CM10-6522-18-GROUP", label: "CM10 (6522-18 / 18TOP)", color: "#3b82f6", group: "cm10-11", ids: ["NOED6522-18", "NOED6522-18TOP"], labels: ["Base", "TOP"] },
-      { id: "CM10-6522-20-GROUP", label: "CM10 (6522-20 / 20TOP)", color: "#8b5cf6", group: "cm10-11", ids: ["NOED6522-20", "NOED6522-20TOP"], labels: ["Base", "TOP"] },
-      { id: "NOED6523-26", label: "CM10 (6523-26)", color: "#0ea5e9", group: "cm10-11", ids: ["NOED6523-26"], labels: ["6523-26"] },
-      { id: "CM11-6532-18-GROUP", label: "CM11 (6532-18 / 18TOP)", color: "#eab308", group: "cm10-11", ids: ["NOED6532-18", "NOED6532-18TOP"], labels: ["Base", "TOP"] },
-      { id: "CM11-6532-20-GROUP", label: "CM11 (6532-20 / 20TOP)", color: "#ec4899", group: "cm10-11", ids: ["NOED6532-20", "NOED6532-20TOP"], labels: ["Base", "TOP"] },
-      { id: "NOED6533-26", label: "CM11 (6533-26)", color: "#f43f5e", group: "cm10-11", ids: ["NOED6533-26"], labels: ["6533-26"] },
-      { id: "NOED6511-23", label: "CLINKER (6511-23)", color: "#ff5722", group: "cm10-11", ids: ["NOED6511-23"], labels: ["6511-23"] },
-      { id: "NOED6511-25", label: "CLINKER (6511-25)", color: "#00b06f", group: "cm10-11", ids: ["NOED6511-25"], labels: ["6511-25"] },
-      { id: "NOED6413-03", label: "GYP (6413-03)", color: "#14b8a6", group: "cm10-11", ids: ["NOED6413-03"], labels: ["6413-03"] },
+      { id: "NOED6522-18", label: "CM10 (6522-18)", color: "#3b82f6", group: "cm10-11" },
+      { id: "NOED6522-18TOP", label: "CM10 (6522-18Head)", color: "#2563eb", group: "cm10-11" },
+      { id: "NOED6522-20", label: "CM10 (6522-20)", color: "#8b5cf6", group: "cm10-11" },
+      { id: "NOED6522-20TOP", label: "CM10 (6522-20Head)", color: "#7c3aed", group: "cm10-11" },
+      { id: "NOED6523-26", label: "CM10 (6523-26)", color: "#0ea5e9", group: "cm10-11" },
+      { id: "NOED6532-18", label: "CM11 (6532-18)", color: "#eab308", group: "cm10-11" },
+      { id: "NOED6532-18TOP", label: "CM11 (6532-18Head)", color: "#ca8a04", group: "cm10-11" },
+      { id: "NOED6532-20", label: "CM11 (6532-20)", color: "#ec4899", group: "cm10-11" },
+      { id: "NOED6532-20TOP", label: "CM11 (6532-20Head)", color: "#db2777", group: "cm10-11" },
+      { id: "NOED6533-26", label: "CM11 (6533-26)", color: "#f43f5e", group: "cm10-11" },
+      { id: "NOED6511-23", label: "CLINKER (6511-23)", color: "#ff5722", group: "cm10-11" },
+      { id: "NOED6511-25", label: "CLINKER (6511-25)", color: "#00b06f", group: "cm10-11" },
+      { id: "NOED6413-03", label: "GYP (6413-03)", color: "#14b8a6", group: "cm10-11" },
 
       // ---------- หน้าที่ 2: CM7-9 ----------
-      { id: "NOED542-22",  label: "CM9 (542-22)", color: "#3b82f6", group: "cm7-9", ids: ["NOED542-22"], labels: ["542-22"] },
-      { id: "NOED522-23",  label: "CM7 (522-23)", color: "#8b5cf6", group: "cm7-9", ids: ["NOED522-23"], labels: ["522-23"] },
-      { id: "NOED511-23",  label: "CLINKER (511-23)", color: "#ff5722", group: "cm7-9", ids: ["NOED511-23"], labels: ["511-23"] },
-      { id: "NOED511-25",  label: "CLINKER (511-25)", color: "#00b06f", group: "cm7-9", ids: ["NOED511-25"], labels: ["511-25"] },
-      { id: "NOED413-03",  label: "GYP (413-03)", color: "#14b8a6", group: "cm7-9", ids: ["NOED413-03"], labels: ["413-03"] },
+      { id: "NOED542-22",  label: "CM9 (542-22)", color: "#3b82f6", group: "cm7-9" },
+      { id: "NOED522-23",  label: "CM7 (522-23)", color: "#8b5cf6", group: "cm7-9" },
+      { id: "NOED511-23",  label: "CLINKER (511-23)", color: "#ff5722", group: "cm7-9" },
+      { id: "NOED511-25",  label: "CLINKER (511-25)", color: "#00b06f", group: "cm7-9" },
+      { id: "NOED413-03",  label: "GYP (413-03)", color: "#14b8a6", group: "cm7-9" },
 
       // ---------- หน้าที่ 3: CM5-6 ----------
-      { id: "NOEDZ5J07",   label: "CM5 (Z5J07)", color: "#3b82f6", group: "cm5-6", ids: ["NOEDZ5J07"], labels: ["Z5J07"] },
-      { id: "NOEDZ6J07",   label: "CM6 (Z6J07)", color: "#8b5cf6", group: "cm5-6", ids: ["NOEDZ6J07"], labels: ["Z6J07"] },
-      { id: "NOEDU5J7",    label: "CLINKER (U5J7)", color: "#ff5722", group: "cm5-6", ids: ["NOEDU5J7"], labels: ["U5J7"] },
-      { id: "NOEDU6J17",   label: "CLINKER (U6J17)", color: "#00b06f", group: "cm5-6", ids: ["NOEDU6J17"], labels: ["U6J17"] }
+      { id: "NOEDZ5J07",   label: "CM5 (Z5J07)", color: "#3b82f6", group: "cm5-6" },
+      { id: "NOEDZ6J07",   label: "CM6 (Z6J07)", color: "#8b5cf6", group: "cm5-6" },
+      { id: "NOEDU5J7",    label: "CLINKER (U5J7)", color: "#ff5722", group: "cm5-6" },
+      { id: "NOEDU6J17",   label: "CLINKER (U6J17)", color: "#00b06f", group: "cm5-6" }
     ];
-
-    const ALL_RAW_IDS = [];
-    DEVICE_LIST.forEach(dev => {
-      dev.ids.forEach(id => { if (!ALL_RAW_IDS.includes(id)) ALL_RAW_IDS.push(id); });
-    });
 
     const firebaseConfig = {
       apiKey: "AIzaSyCCSwEUELEQkE0kqXeDJ4526zC_yAaNPPU", 
@@ -234,7 +248,7 @@
     const db = firebase.database();
 
     let alarmLimit = parseFloat(localStorage.getItem('vibAlarmLimit')) || 40.0;
-    let liveData = {}; 
+    let latestValues = {}; 
     let currentTabGroup = 'cm10-11'; 
 
     let isAutoMode = true; 
@@ -244,9 +258,12 @@
     const AUTO_MAX_TIME = 10;
 
     let myChart; 
+    let myChartTop; 
     let sparkCharts = {}; 
     let currentDurationHours = 6; 
-    let activeNode = null; 
+    
+    let activeNodeBase = null; 
+    let activeNodeTop = null; 
     let isModalOpen = false;
 
     let globalRecords = {}; 
@@ -291,15 +308,17 @@
       stopAutoTimer();
       autoTimer = setInterval(() => {
         if (isModalOpen) return; 
-        autoRemaining--;
+        
+        autoRemaining--; 
         updateAutoModeUI();
+
         if (autoRemaining <= 0) {
           autoRemaining = AUTO_MAX_TIME;
           let currentIndex = tabCycle.indexOf(currentTabGroup);
           let nextIndex = (currentIndex + 1) % tabCycle.length;
           switchTabCore(tabCycle[nextIndex]); 
         }
-      }, 1000);
+      }, 1000); 
     }
 
     function stopAutoTimer() {
@@ -320,19 +339,27 @@
 
     function switchTabCore(group) {
       currentTabGroup = group;
+      
       document.querySelectorAll('.main-tab-btn').forEach(btn => {
         if(btn.dataset.group === group) btn.classList.add('active');
         else btn.classList.remove('active');
       });
-      DEVICE_LIST.forEach(dev => {
+
+      // โชว์/ซ่อน เฉพาะการ์ดตัว Base
+      const bases = DEVICE_LIST.filter(d => !d.id.endsWith('TOP'));
+      bases.forEach(dev => {
         const card = document.getElementById(`card-${dev.id}`);
-        if(card) card.style.display = (dev.group === group) ? 'flex' : 'none';
+        if(card) {
+          card.style.display = (dev.group === group) ? 'flex' : 'none';
+        }
       });
+      
       window.dispatchEvent(new Event('resize'));
     }
 
     function setAlarmLimit() {
-      let userInput = prompt("กำหนดค่าความสั่นสะเทือน (mm/s) ที่ต้องการให้แจ้งเตือน:", alarmLimit);
+      let userInput = prompt("กำหนดค่าความสั่นสะเทือน (mm/s) ที่ต้องการให้กะพริบแจ้งเตือน:", alarmLimit);
+      
       if (userInput !== null && userInput.trim() !== "") {
         let newLimit = parseFloat(userInput);
         if (!isNaN(newLimit) && newLimit > 0) {
@@ -340,8 +367,33 @@
           localStorage.setItem('vibAlarmLimit', alarmLimit); 
           document.getElementById('alarm-display').innerText = alarmLimit; 
           
-          DEVICE_LIST.forEach(dev => updateCardUI(dev));
+          // ตรวจสอบค่า Alert ใหม่อีกครั้ง
+          DEVICE_LIST.forEach(dev => {
+             if (latestValues[dev.id] !== undefined) {
+                 if (latestValues[dev.id] >= alarmLimit) {
+                     alertStatus[dev.id] = true;
+                 } else {
+                     alertStatus[dev.id] = false;
+                 }
+                 
+                 let baseId = dev.id.endsWith('TOP') ? dev.id.replace('TOP', '') : dev.id;
+                 let topId = baseId + 'TOP';
+                 const card = document.getElementById(`card-${baseId}`);
+                 let hasAlarm = alertStatus[baseId] === true || alertStatus[topId] === true;
+                 
+                 if(card) {
+                     if(hasAlarm) {
+                         card.classList.add('alert-danger');
+                     } else {
+                         card.classList.remove('alert-danger');
+                     }
+                 }
+             }
+          });
+          triggerAlarmLogic(); 
+
           if (isModalOpen) loadDataByDuration(currentDurationHours);
+          
         } else {
           alert("กรุณากรอกเฉพาะตัวเลขที่มากกว่า 0 เท่านั้นครับ");
         }
@@ -351,26 +403,50 @@
     function initializeDashboard() {
       updateAutoModeUI();
       startAutoTimer();
+
       document.getElementById('alarm-display').innerText = alarmLimit;
 
       const container = document.getElementById('devices-container');
       container.innerHTML = ''; 
       
-      DEVICE_LIST.forEach(dev => {
-        alertStatus[dev.id] = false;
+      // ดึงเฉพาะตัว Base (ตัวที่ไม่มีคำว่า TOP) มาสร้างการ์ด
+      const bases = DEVICE_LIST.filter(d => !d.id.endsWith('TOP'));
+      
+      bases.forEach(baseDev => {
+        const topDev = DEVICE_LIST.find(d => d.id === baseDev.id + 'TOP');
+        
+        alertStatus[baseDev.id] = false;
+        if(topDev) alertStatus[topDev.id] = false;
+
+        let topHtml = '';
+        if (topDev) {
+            topHtml = `
+            <div class="vib-value-row">
+                <div class="v-label">Head</div>
+                <div class="value" id="val-${topDev.id}">0.00 <span>mm/s</span></div>
+            </div>`;
+        }
+
         container.innerHTML += `
-          <div class="status-card" id="card-${dev.id}" onclick="openModal('${dev.id}')" style="display: none;">
+          <div class="status-card" id="card-${baseDev.id}" onclick="openModal('${baseDev.id}')" style="display: none;">
             <div class="card-info">
-              <h3>${dev.label}</h3>
-              <div class="value" id="val-${dev.id}">0.00 <span>mm/s</span></div>
-              <div class="time" id="time-${dev.id}"><i class="fa-regular fa-clock"></i> --:--:--</div>
+              <h3>${baseDev.label}</h3>
+              <div class="vib-value-container">
+                  <div class="vib-value-row">
+                      ${topDev ? '<div class="v-label">Boot</div>' : ''}
+                      <div class="value" id="val-${baseDev.id}">0.00 <span>mm/s</span></div>
+                  </div>
+                  ${topHtml}
+              </div>
+              <div class="time" id="time-${baseDev.id}"><i class="fa-regular fa-clock"></i> --:--:--</div>
             </div>
-            <div class="sparkline-container" id="spark-${dev.id}"></div>
+            <div class="sparkline-container" id="spark-${baseDev.id}"></div>
           </div>
         `;
       });
 
-      DEVICE_LIST.forEach(dev => {
+      // สร้าง Sparkline ให้ตัว Base เท่านั้น
+      bases.forEach(dev => {
         sparkCharts[dev.id] = new ApexCharts(document.querySelector(`#spark-${dev.id}`), { 
           ...sparklineOptions, colors: [dev.color], series: [{ data: [] }] 
         });
@@ -404,73 +480,66 @@
       }
     }
 
-    function updateCardUI(dev) {
-      const valEl = document.getElementById(`val-${dev.id}`);
-      const timeEl = document.getElementById(`time-${dev.id}`);
-      const cardEl = document.getElementById(`card-${dev.id}`);
-      if (!valEl || !timeEl || !cardEl) return;
-
-      let isAlarm = false;
-      let latestEpoch = 0;
-
-      if (dev.ids.length === 1) {
-        let id = dev.ids[0];
-        let data = liveData[id];
-        let currentVal = data ? data.ax : 0;
-        valEl.innerHTML = currentVal.toFixed(2) + " <span>mm/s</span>";
-        if (data && data.gatewayEpoch) latestEpoch = data.gatewayEpoch;
-        if (currentVal >= alarmLimit) isAlarm = true;
-      } else {
-        let html = '<div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; font-size:15px; width:100%; font-weight:700; margin-top:4px;">';
-        dev.ids.forEach((id, idx) => {
-          let data = liveData[id];
-          let currentVal = data ? data.ax : 0;
-          if (data && data.gatewayEpoch > latestEpoch) latestEpoch = data.gatewayEpoch;
-          if (currentVal >= alarmLimit) isAlarm = true;
-          
-          let colorStyle = currentVal >= alarmLimit ? 'color:#ef4444;' : 'color:var(--text-main);';
-          html += `<div style="${colorStyle}">${dev.labels[idx]}: ${currentVal.toFixed(2)}<span style="font-size:10px; font-weight:400; color:var(--text-sub);"> mm/s</span></div>`;
-        });
-        html += '</div>';
-        valEl.innerHTML = html;
-      }
-
-      if (latestEpoch > 0) {
-        timeEl.innerHTML = `<i class="fa-regular fa-clock"></i> ` + dayjs(latestEpoch * 1000).format('HH:mm:ss');
-      }
-
-      if (isAlarm) {
-        cardEl.classList.add('alert-danger');
-        alertStatus[dev.id] = true;
-      } else {
-        cardEl.classList.remove('alert-danger');
-        alertStatus[dev.id] = false;
-      }
-      triggerAlarmLogic();
-    }
-
     function listenLiveStatus() {
-      ALL_RAW_IDS.forEach(id => {
-        db.ref(`Vibration_Logs/${id}`).limitToLast(1).on('value', snap => {
+      // ดึงข้อมูลทั้ง Base และ TOP (ตอนนี้แสดงผลเป็น Head/Boot)
+      DEVICE_LIST.forEach(dev => {
+        db.ref(`Vibration_Logs/${dev.id}`).limitToLast(1).on('value', snap => {
           snap.forEach(child => {
             let data = child.val();
-            if (data && data.ax !== undefined && data.ax !== null) {
-              liveData[id] = data;
-              DEVICE_LIST.forEach(dev => {
-                if (dev.ids.includes(id)) updateCardUI(dev);
-              });
+            let currentVal = data.ax;
+            
+            if (currentVal !== undefined && currentVal !== null) {
+                latestValues[dev.id] = currentVal;
+                
+                // อัปเดตตัวเลขในการ์ด
+                const valEl = document.getElementById(`val-${dev.id}`);
+                if (valEl) {
+                    valEl.innerHTML = currentVal.toFixed(2) + " <span>mm/s</span>";
+                }
+                
+                let baseId = dev.id.endsWith('TOP') ? dev.id.replace('TOP', '') : dev.id;
+                
+                // อัปเดตเวลาเฉพาะให้ส่วนฐาน
+                if (!dev.id.endsWith('TOP')) {
+                    document.getElementById(`time-${baseId}`).innerHTML = `<i class="fa-regular fa-clock"></i> ` + dayjs(data.gatewayEpoch * 1000).format('HH:mm:ss');
+                }
+                
+                // เช็ค Alarm
+                if (currentVal >= alarmLimit) { 
+                    alertStatus[dev.id] = true; 
+                } else { 
+                    alertStatus[dev.id] = false; 
+                }
+
+                // กระพริบการ์ดถ้าตัวใดตัวหนึ่งแจ้งเตือน
+                let topId = baseId + 'TOP';
+                let hasAlarm = alertStatus[baseId] === true || alertStatus[topId] === true;
+                const card = document.getElementById(`card-${baseId}`);
+                
+                if (card) {
+                    if (hasAlarm) card.classList.add('alert-danger');
+                    else card.classList.remove('alert-danger');
+                }
+                
+                triggerAlarmLogic();
             }
           });
         });
       });
     }
 
-    function openModal(nodeId) {
-      activeNode = nodeId;
+    function openModal(baseId) {
+      let topId = baseId + 'TOP';
+      let hasTop = DEVICE_LIST.some(d => d.id === topId);
+      if (!hasTop) topId = null;
+
+      activeNodeBase = baseId;
+      activeNodeTop = topId;
       isModalOpen = true;
-      const activeDev = DEVICE_LIST.find(d => d.id === nodeId);
       
-      document.getElementById('modal-title').innerHTML = `<i class="fa-solid fa-chart-line" style="color: ${activeDev.color}; margin-right:6px;"></i> ${activeDev.label}`;
+      const baseDev = DEVICE_LIST.find(d => d.id === baseId);
+      let titleHtml = `<i class="fa-solid fa-chart-line" style="color: ${baseDev.color}; margin-right:6px;"></i> ${baseDev.label}`;
+      document.getElementById('modal-title').innerHTML = titleHtml;
       
       const modal = document.getElementById('chartModal');
       modal.style.display = 'flex';
@@ -486,62 +555,102 @@
     }
     function closeModalOutside(event) { if (event.target.id === 'chartModal') closeModal(); }
 
-    function renderBigChartCombined(labels, series, seriesColors) {
+    function renderBigCharts(baseId, topId) {
       const isDark = document.body.classList.contains('dark-mode');
       const textColor = isDark ? '#8c96a5' : '#6b7280';
       const gridColor = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)';
+      
+      const vibColor = '#ef4444';  
+      const peakColor = '#0ea5e9'; 
+      
       const isMobile = window.innerWidth <= 768;
+      const chartHeight = topId ? 280 : 350;
 
-      let fillTypes = series.map(s => s.type === 'area' ? 'gradient' : 'solid');
-
-      const options = {
-        series: series,
-        chart: { 
-            height: '100%', fontFamily: "'Inter', 'Prompt', sans-serif", 
-            background: 'transparent', animations: { enabled: false }, 
-            toolbar: { show: false }, zoom: { enabled: false }, selection: { enabled: false } 
-        },
-        colors: seriesColors,
-        dataLabels: { enabled: false },
-        stroke: { curve: 'smooth', width: series.map(s => s.type === 'area' ? 2 : 2.5) }, 
-        fill: { type: fillTypes, gradient: { shadeIntensity: 1, opacityFrom: 0.2, opacityTo: 0.0, stops: [0, 100] } },
-        legend: { show: true, position: 'top', horizontalAlign: 'right', labels: { colors: textColor }, markers: { radius: 12 } },
-        xaxis: {
-          categories: labels, tickAmount: isMobile ? 4 : 6, 
-          labels: { style: { colors: textColor, fontSize: '10px' }, hideOverlappingLabels: true, rotate: isMobile ? 0 : -45 },
-          axisBorder: { show: false }, axisTicks: { show: false }
-        },
-        yaxis: [
-          {
-            min: 0, 
-            max: function(max) { return max < (alarmLimit + 10) ? (alarmLimit + 10) : max; },
-            labels: { style: { colors: textColor, fontSize: '11px', fontWeight: 500 }, formatter: function (val) { return (val !== undefined && val !== null) ? val.toFixed(2) : ''; } }, 
-            title: { text: 'RMS (mm/s)', style: { color: '#ef4444', fontSize: '11px', fontWeight: 600 } }
-          },
-          {
-            opposite: true, 
-            min: 0, 
-            labels: { style: { colors: textColor, fontSize: '11px', fontWeight: 500 }, formatter: function (val) { return (val !== undefined && val !== null) ? val.toFixed(2) : ''; } }, 
-            title: { text: 'Peak (g)', style: { color: '#3b82f6', fontSize: '11px', fontWeight: 600 } }
-          }
-        ],
-        grid: { borderColor: gridColor, strokeDashArray: 4, xaxis: { lines: { show: false } }, yaxis: { lines: { show: true } }, padding: { left: 6, right: 6 } },
-        theme: { mode: isDark ? 'dark' : 'light' },
-        annotations: { 
-            yaxis: [{ 
-                y: alarmLimit, 
-                yAxisIndex: 0, 
-                borderColor: '#ef4444', strokeDashArray: 5, borderWidth: 1.5, 
-                label: { borderColor: 'transparent', style: { color: '#fff', background: '#ef4444', fontSize: '10px', fontWeight: 600, padding: { left: 6, right: 6, top: 3, bottom: 3 } }, text: 'ALARM: ' + alarmLimit } 
-            }] 
-        }
+      const getChartOptions = (data, title, chartId) => {
+          return {
+            series: [
+              { name: 'RMS (ax)', type: 'area', data: data.plotAx },
+              { name: 'Max Peak (accMag)', type: 'line', data: data.plotAcc }
+            ],
+            chart: { 
+                id: chartId,
+                group: 'sync-vib', 
+                height: chartHeight, 
+                fontFamily: "'Inter', 'Prompt', sans-serif", 
+                background: 'transparent', animations: { enabled: false }, 
+                toolbar: { show: false }, zoom: { enabled: false }, selection: { enabled: false } 
+            },
+            colors: [vibColor, peakColor],
+            dataLabels: { enabled: false },
+            stroke: { curve: 'smooth', width: [2, 2.5] }, 
+            fill: { type: ['gradient', 'solid'], gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.0, stops: [0, 100] } },
+            legend: { show: true, position: 'top', horizontalAlign: 'right', labels: { colors: textColor }, markers: { radius: 12 } },
+            title: { text: title, align: 'left', style: { color: textColor, fontSize: '12px', fontWeight: 600 } },
+            xaxis: {
+              categories: data.labels, tickAmount: isMobile ? 4 : 6, 
+              labels: { style: { colors: textColor, fontSize: '10px' }, hideOverlappingLabels: true, rotate: isMobile ? 0 : -45 },
+              axisBorder: { show: false }, axisTicks: { show: false }
+            },
+            yaxis: [
+              {
+                seriesName: 'RMS (ax)', 
+                min: 0, 
+                max: function(max) { return max < (alarmLimit + 10) ? (alarmLimit + 10) : max; },
+                labels: { style: { colors: textColor, fontSize: '11px', fontWeight: 500 }, formatter: function (val) { return (val !== undefined && val !== null) ? val.toFixed(2) : ''; } }, 
+                title: { text: 'RMS (mm/s)', style: { color: vibColor, fontSize: '11px', fontWeight: 600 } } 
+              },
+              {
+                seriesName: 'Max Peak (accMag)', 
+                opposite: true, 
+                min: 0, 
+                labels: { style: { colors: textColor, fontSize: '11px', fontWeight: 500 }, formatter: function (val) { return (val !== undefined && val !== null) ? val.toFixed(2) : ''; } }, 
+                title: { text: 'Peak (g)', style: { color: peakColor, fontSize: '11px', fontWeight: 600 } } 
+              }
+            ],
+            grid: { borderColor: gridColor, strokeDashArray: 4, xaxis: { lines: { show: false } }, yaxis: { lines: { show: true } }, padding: { left: 6, right: 6 } },
+            theme: { mode: isDark ? 'dark' : 'light' },
+            annotations: { 
+                yaxis: [{ 
+                    y: alarmLimit, 
+                    yAxisIndex: 0, 
+                    borderColor: '#ef4444', strokeDashArray: 5, borderWidth: 1.5, 
+                    label: { borderColor: 'transparent', style: { color: '#fff', background: '#ef4444', fontSize: '10px', fontWeight: 600, padding: { left: 6, right: 6, top: 3, bottom: 3 } }, text: 'ALARM: ' + alarmLimit } 
+                }] 
+            }
+          };
       };
 
+      const baseData = globalRecords[baseId];
+      const baseDev = DEVICE_LIST.find(d => d.id === baseId);
+      const titleBase = topId ? `Boot (${baseDev.id})` : baseDev.label;
+      const optionsBase = getChartOptions(baseData, titleBase, 'chart-base');
+      
       if (!myChart) {
-        myChart = new ApexCharts(document.querySelector("#vibChart"), options);
+        myChart = new ApexCharts(document.querySelector("#vibChart"), optionsBase);
         myChart.render();
       } else {
-        myChart.updateOptions(options, false, false); 
+        myChart.updateOptions(optionsBase, false, false); 
+      }
+
+      const chartTopDiv = document.querySelector("#vibChartTop");
+      if (topId) {
+          chartTopDiv.style.display = 'block';
+          const topData = globalRecords[topId];
+          const topDev = DEVICE_LIST.find(d => d.id === topId);
+          const optionsTop = getChartOptions(topData, `Head (${topDev.id})`, 'chart-top');
+          
+          if (!myChartTop) {
+              myChartTop = new ApexCharts(chartTopDiv, optionsTop);
+              myChartTop.render();
+          } else {
+              myChartTop.updateOptions(optionsTop, false, false);
+          }
+      } else {
+          chartTopDiv.style.display = 'none';
+          if (myChartTop) {
+              myChartTop.destroy();
+              myChartTop = null;
+          }
       }
     }
 
@@ -556,21 +665,20 @@
       await fetchFirebaseRange(startTime, now);
     }
 
-    // 🟢 FIXED FUNCTION: แก้ไขตัวแปรผิดพลาดให้เมนูกลับมาทำงานปกติ
     async function fetchFirebaseRange(start, end) {
-      const promises = ALL_RAW_IDS.map(id => 
-        db.ref(`Vibration_Logs/${id}`).orderByChild('gatewayEpoch').startAt(start).endAt(end).once('value')
+      const promises = DEVICE_LIST.map(dev => 
+        db.ref(`Vibration_Logs/${dev.id}`).orderByChild('gatewayEpoch').startAt(start).endAt(end).once('value')
       );
       
       const snapshots = await Promise.all(promises);
+
       const isMobile = window.innerWidth <= 768;
       const timeFormat = (isMobile && currentDurationHours <= 24) ? 'HH:mm' : 'DD/MM HH:mm';
 
-      let rawRecords = {};
-
       snapshots.forEach((snap, index) => {
-        const id = ALL_RAW_IDS[index];
-        let timestamps = [];
+        const devId = DEVICE_LIST[index].id;
+        
+        let deviceLabels = [];
         let plotAx = [];
         let plotAcc = [];
         let lastTemp = null;
@@ -578,90 +686,55 @@
         snap.forEach(child => {
           let d = child.val(); 
           if(d.gatewayEpoch) {
-            let t = dayjs(d.gatewayEpoch * 1000).format(timeFormat); 
-            // 🟢 เปลี่ยนจาก deviceLabels เป็น timestamps เพื่อแก้บั๊กโค้ดหยุดทำงาน
-            if (timestamps.length === 0 || timestamps[timestamps.length - 1] !== t) {
-                timestamps.push(t);
-                plotAx.push(d.ax);
-                plotAcc.push(d.accMag);
-            } else {
-                plotAx[plotAx.length - 1] = d.ax;
-                plotAcc[plotAcc.length - 1] = d.accMag;
-            }
-            if(d.temp) lastTemp = d.temp;
+              let t = dayjs(d.gatewayEpoch * 1000).format(timeFormat); 
+              
+              if (deviceLabels.length === 0 || deviceLabels[deviceLabels.length - 1] !== t) {
+                  deviceLabels.push(t);
+                  plotAx.push(d.ax);
+                  plotAcc.push(d.accMag);
+              } else {
+                  plotAx[plotAx.length - 1] = d.ax;
+                  plotAcc[plotAcc.length - 1] = d.accMag;
+              }
+              if(d.temp) lastTemp = d.temp;
           }
         });
 
-        rawRecords[id] = { timestamps, plotAx, plotAcc, lastTemp };
-      });
-
-      DEVICE_LIST.forEach(dev => {
-        let firstId = dev.ids[0];
-        if (rawRecords[firstId]) {
-          sparkCharts[dev.id].updateSeries([{ data: rawRecords[firstId].plotAx.slice(-30) }]);
+        // อัปเดตกราฟเส้นจิ๋วเฉพาะส่วนฐาน (Base/Boot)
+        if (!devId.endsWith('TOP')) {
+            sparkCharts[devId].updateSeries([{ data: plotAx.slice(-30) }]);
         }
 
-        let masterLabels = [];
-        dev.ids.forEach(id => {
-          if (rawRecords[id]) {
-            rawRecords[id].timestamps.forEach(t => { if (!masterLabels.includes(t)) masterLabels.push(t); });
-          }
-        });
-
-        let alignedData = dev.ids.map(id => {
-          let axArr = [];
-          let accArr = [];
-          let r = rawRecords[id];
-          masterLabels.forEach(t => {
-            let idx = r ? r.timestamps.indexOf(t) : -1;
-            axArr.push(idx >= 0 ? r.plotAx[idx] : null);
-            accArr.push(idx >= 0 ? r.plotAcc[idx] : null);
-          });
-          return { axArr, accArr, lastTemp: r ? r.lastTemp : null };
-        });
-
-        globalRecords[dev.id] = { labels: masterLabels, alignedData: alignedData };
+        if(!globalRecords[devId]) globalRecords[devId] = {};
+        globalRecords[devId].labels = deviceLabels; 
+        globalRecords[devId].plotAx = plotAx;
+        globalRecords[devId].plotAcc = plotAcc;
+        globalRecords[devId].lastTemp = lastTemp;
       });
 
-      if (isModalOpen && activeNode) {
-        const devData = globalRecords[activeNode];
-        const dev = DEVICE_LIST.find(d => d.id === activeNode);
+      if (isModalOpen && activeNodeBase) {
+        const devData = globalRecords[activeNodeBase];
         
-        const tempBar = document.getElementById('modal-temp-bar');
-        tempBar.innerHTML = '';
-        dev.ids.forEach((id, idx) => {
-          let t = rawRecords[id] ? rawRecords[id].lastTemp : null;
-          let textDisplay = t !== null ? `${t.toFixed(1)} °C` : '-- °C';
-          let colorStyle = (t > 60) ? 'color:#ef4444;' : 'color:var(--text-main);';
-          
-          tempBar.innerHTML += `
-            <div class="stat-item">
-              <i class="fa-solid fa-temperature-half"></i> 
-              <span>อุณหภูมิ ${dev.ids.length > 1 ? dev.labels[idx] : 'มอเตอร์'}:</span>
-              <span class="val" style="${colorStyle}">${textDisplay}</span>
-            </div>
-          `;
-        });
+        const tempDisplay = document.getElementById('modal-temp');
+        let tempStr = "";
+        let isHighTemp = false;
 
-        let series = [];
-        let seriesColors = [];
+        if (devData.lastTemp !== undefined && devData.lastTemp !== null) {
+            tempStr += `Boot: ${devData.lastTemp.toFixed(1)}°C`;
+            if(devData.lastTemp > 60) isHighTemp = true;
+        }
         
-        const rmsPalette = ['#ef4444', '#f59e0b']; 
-        const peakPalette = ['#2563eb', '#06b6d4']; 
+        if (activeNodeTop && globalRecords[activeNodeTop] && globalRecords[activeNodeTop].lastTemp !== null && globalRecords[activeNodeTop].lastTemp !== undefined) {
+            if(tempStr) tempStr += ` | `;
+            const topTemp = globalRecords[activeNodeTop].lastTemp;
+            tempStr += `Head: ${topTemp.toFixed(1)}°C`;
+            if(topTemp > 60) isHighTemp = true;
+        }
 
-        dev.ids.forEach((id, idx) => {
-          let prefix = dev.ids.length > 1 ? `[${dev.labels[idx]}] ` : '';
-          series.push({ name: `${prefix}RMS (ax)`, type: 'area', data: devData.alignedData[idx].axArr });
-          seriesColors.push(rmsPalette[idx] || '#ef4444');
-        });
+        tempDisplay.innerText = tempStr || '-- °C';
+        tempDisplay.style.color = isHighTemp ? '#ef4444' : 'var(--text-main)';
 
-        dev.ids.forEach((id, idx) => {
-          let prefix = dev.ids.length > 1 ? `[${dev.labels[idx]}] ` : '';
-          series.push({ name: `${prefix}Max Peak (accMag)`, type: 'line', data: devData.alignedData[idx].accArr });
-          seriesColors.push(peakPalette[idx] || '#2563eb');
-        });
-
-        renderBigChartCombined(devData.labels, series, seriesColors);
+        renderBigCharts(activeNodeBase, activeNodeTop);
       }
     }
 
