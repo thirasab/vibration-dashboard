@@ -194,7 +194,7 @@
       <button class="main-tab-btn active" data-group="cm10-11" onclick="switchTab('cm10-11')">CM10-11</button>
       <button class="main-tab-btn" data-group="cm7-9" onclick="switchTab('cm7-9')">CM7-9</button>
       <button class="main-tab-btn" data-group="cm5-6" onclick="switchTab('cm5-6')">CM5-6</button>
-      <button class="main-tab-btn bf-tab" data-group="gate-bf" onclick="switchTab('gate-bf')">Ps. BF</button>
+      <button class="main-tab-btn bf-tab" data-group="gate-bf" onclick="switchTab('gate-bf')">PS. BF</button>
     </div>
 
     <!-- Container สำหรับ Vibration -->
@@ -207,7 +207,7 @@
           <div class="status-dot" id="mqtt-dot"></div><span id="mqtt-text">Wait</span>
         </div>
       </div>
-      <!-- 8 Gates Grid ในรูปแบบ Card เหมือน Vibration -->
+      <!-- 8 PS Grid ในรูปแบบ Card เหมือน Vibration -->
       <div class="status-grid" id="gates-container"></div>
     </div>
   </div>
@@ -231,7 +231,7 @@
       </div>
 
       <div class="modal-body-scroll">
-        <!-- ปุ่มเลือกเวลา (ใช้งานร่วมกันทั้ง Vib & BF) -->
+        <!-- ปุ่มเลือกเวลา (แสดงทั้งคู่แล้ว) -->
         <div class="control-panel" id="modal-time-controls">
           <div class="btn-group">
             <button class="filter-btn" id="btn-1" onclick="loadDataByDuration(1)">1h</button>
@@ -328,7 +328,7 @@
     let isModalOpen = false;
     let currentModalType = 'vib'; // 'vib' or 'bf'
 
-    // ตัวแปรสำหรับจำค่ากราฟ Gate ที่เปิดอยู่
+    // ตัวแปรสำหรับจำค่ากราฟ PS ที่เปิดอยู่
     let activeGateKey = null;
     let activeGateTitle = '';
     let activeGateColor = '';
@@ -485,9 +485,9 @@
       gateContainer.innerHTML = '';
       gatesConfig.forEach((gate) => {
           gateContainer.innerHTML += `
-              <div class="status-card" id="card-${gate.id}" onclick="openGateModal('${gate.id}', 'Gate ${gate.name}', '${gate.color}')">
+              <div class="status-card" id="card-${gate.id}" onclick="openGateModal('${gate.id}', 'PS. ${gate.name}', '${gate.color}')">
                 <div class="card-info">
-                  <h3>Gate ${gate.name}</h3>
+                  <h3>PS. ${gate.name}</h3>
                   <div class="vib-value-container">
                       <div class="vib-value-row">
                           <div class="v-label" style="width: auto;">Press</div>
@@ -630,7 +630,6 @@
        🟢 7. การเปิด Modal และสร้างกราฟ
        ========================================== */
     function clearCharts() {
-      // Memory Cleanup: ทำลายออบเจ็กต์ของกราฟเพื่อคืนพื้นที่ RAM
       if (myChart) { myChart.destroy(); myChart = null; }
       if (myChartTop) { myChartTop.destroy(); myChartTop = null; }
       document.getElementById('vibChartTop').style.display = 'none';
