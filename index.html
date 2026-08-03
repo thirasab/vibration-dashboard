@@ -194,7 +194,7 @@
       <button class="main-tab-btn active" data-group="cm10-11" onclick="switchTab('cm10-11')">CM10-11</button>
       <button class="main-tab-btn" data-group="cm7-9" onclick="switchTab('cm7-9')">CM7-9</button>
       <button class="main-tab-btn" data-group="cm5-6" onclick="switchTab('cm5-6')">CM5-6</button>
-      <button class="main-tab-btn bf-tab" data-group="gate-bf" onclick="switchTab('gate-bf')">GATE BF</button>
+      <button class="main-tab-btn bf-tab" data-group="gate-bf" onclick="switchTab('gate-bf')">Ps. BF</button>
     </div>
 
     <!-- Container สำหรับ Vibration -->
@@ -527,6 +527,7 @@
             if (currentVal !== undefined && currentVal !== null) {
                 latestValues[dev.id] = currentVal;
                 
+                // อัปเดตเฉพาะ DOM (เพื่อประหยัด Memory ไม่เก็บลง Array สะสม)
                 const valEl = document.getElementById(`val-${dev.id}`);
                 if (valEl) valEl.innerHTML = currentVal.toFixed(2) + " <span>mm/s</span>";
                 
@@ -629,6 +630,7 @@
        🟢 7. การเปิด Modal และสร้างกราฟ
        ========================================== */
     function clearCharts() {
+      // Memory Cleanup: ทำลายออบเจ็กต์ของกราฟเพื่อคืนพื้นที่ RAM
       if (myChart) { myChart.destroy(); myChart = null; }
       if (myChartTop) { myChartTop.destroy(); myChartTop = null; }
       document.getElementById('vibChartTop').style.display = 'none';
