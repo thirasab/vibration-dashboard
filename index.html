@@ -14,9 +14,8 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   
-  <!-- MQTT & Gauges (Bag Filter) -->
+  <!-- MQTT (Bag Filter) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
-  <script src="https://cdn.rawgit.com/Mikhus/canvas-gauges/gh-pages/download/2.1.7/radial/gauge.min.js"></script>
 
   <!-- Charts & Time -->
   <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
@@ -87,7 +86,7 @@
     /* Tab สำหรับ Bag Filter เฉพาะ */
     .main-tab-btn.bf-tab.active { background: var(--bf-primary); box-shadow: 0 4px 10px rgba(56, 189, 248, 0.2); }
 
-    /* ================= Vibration UI ================= */
+    /* ================= Common Card UI (Vib & BF) ================= */
     .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin-bottom: 20px; }
     .status-card { background: var(--card-bg); border-radius: 12px; padding: 16px 20px; box-shadow: var(--shadow); border: var(--border); display: flex; justify-content: space-between; align-items: center; transition: transform 0.15s; cursor: pointer; }
     .status-card:active { transform: scale(0.98); } 
@@ -104,21 +103,9 @@
     .charts-wrapper { display: flex; flex-direction: column; gap: 4px; justify-content: center; align-items: flex-end; }
     .sparkline-container { width: 100px; height: 35px; pointer-events: none; }
 
-    /* ================= Bag Filter UI ================= */
-    .bf-layout { display: flex; flex-direction: column; gap: 12px; min-height: 400px; margin-bottom: 20px;}
-    .glass-card { background: var(--card-bg); border-radius: 12px; border: var(--border); box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px; cursor: pointer; transition: 0.2s; position: relative;}
-    .glass-card:hover { border-color: var(--bf-primary); }
-    
-    .gauge-wrapper { flex-grow: 1; width: 100%; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-    canvas { width: 100% !important; height: 100% !important; max-width: 100% !important; max-height: 100% !important; object-fit: contain; }
-    
-    .bf-title { font-size: 14px; font-weight: 700; color: var(--bf-primary); text-transform: uppercase; margin-bottom: 2px; }
-    .bf-status { font-size: 12px; font-weight: 600; margin-bottom: 5px; }
-    .text-ok { color: var(--status-ok); }
-    .text-err { color: var(--status-error); }
-    .gates-panel { display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(2, 1fr); gap: 12px; }
-    
-    .mqtt-header { display: flex; justify-content: flex-end; width: 100%; }
+    /* ================= Bag Filter Layout ================= */
+    .bf-layout { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+    .mqtt-header { display: flex; justify-content: flex-end; width: 100%; margin-bottom: 8px; }
     .mqtt-status { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 500; background: var(--card-bg); border: var(--border); padding: 6px 12px; border-radius: 20px; box-shadow: var(--shadow); }
     .status-dot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--status-error); }
     .status-dot.online { background-color: var(--status-ok); box-shadow: 0 0 8px var(--status-ok); }
@@ -128,7 +115,6 @@
     .alert-danger { animation: flashDanger 1s infinite !important; }
     .alert-danger .value, .alert-danger h3, .alert-danger .v-label { color: #ef4444 !important; }
     .alert-danger .v-label { background: rgba(239, 68, 68, 0.15); }
-    .bf-alert { animation: flashDanger 1.5s infinite !important; }
 
     /* ================= Modal ================= */
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); z-index: 1000; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.2s ease; }
@@ -149,6 +135,8 @@
     .btn-group { display: flex; gap: 2px; width: 100%; }
     button.filter-btn { flex: 1; padding: 8px 0; border: none; border-radius: 8px; cursor: pointer; background: transparent; color: var(--text-sub); font-family: 'Inter', 'Prompt', sans-serif; font-weight: 600; font-size: 13px; transition: all 0.2s; }
     button.filter-btn.active { background: var(--card-bg); color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    /* สีของปุ่ม Filter สำหรับหน้า Bag Filter */
+    body[data-modal="bf"] button.filter-btn.active { color: var(--bf-primary); }
 
     .chart-container { background: var(--card-bg); border-radius: 12px; padding: 8px 4px 12px 4px; border: var(--border); width: 100%; }
     .chart-wrapper { position: relative; width: 100%; display: flex; flex-direction: column; gap: 12px; }
@@ -159,8 +147,6 @@
       body { padding: 12px; }
       .header-actions { width: 100%; justify-content: space-between; }
       .status-grid { grid-template-columns: 1fr; gap: 10px; }
-      .gates-panel { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(4, 1fr); }
-      .glass-card { padding: 8px; }
       .modal-overlay { padding: 12px; } 
       .modal-content { max-height: 88vh; padding: 16px; }
 
@@ -221,8 +207,8 @@
           <div class="status-dot" id="mqtt-dot"></div><span id="mqtt-text">Wait</span>
         </div>
       </div>
-      <!-- 8 Gates Grid -->
-      <div class="gates-panel" id="gates-container"></div>
+      <!-- 8 Gates Grid ในรูปแบบ Card เหมือน Vibration -->
+      <div class="status-grid" id="gates-container"></div>
     </div>
   </div>
 
@@ -245,7 +231,7 @@
       </div>
 
       <div class="modal-body-scroll">
-        <!-- ปุ่มเลือกเวลา (แสดงทั้งคู่แล้ว) -->
+        <!-- ปุ่มเลือกเวลา (ใช้งานร่วมกันทั้ง Vib & BF) -->
         <div class="control-panel" id="modal-time-controls">
           <div class="btn-group">
             <button class="filter-btn" id="btn-1" onclick="loadDataByDuration(1)">1h</button>
@@ -305,7 +291,7 @@
     const db = firebase.database();
 
     /* ==========================================
-       🟢 2. ส่วนตั้งค่า Bag Filter (MQTT & Gauge)
+       🟢 2. ส่วนตั้งค่า Bag Filter (MQTT & UI)
        ========================================== */
     const gatesConfig = [
         { id: 'p1', name: '6526.04', color: '#38bdf8' },
@@ -351,6 +337,13 @@
     const alarmSound = new Audio('https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg');
     alarmSound.loop = true; 
     let isSoundEnabled = false;
+
+    // การตั้งค่ามาตรฐานสำหรับ Sparklines กราฟเล็ก
+    const sparkOptions = {
+        chart: { type: 'line', width: '100%', height: '100%', sparkline: { enabled: true }, animations: { enabled: false } },
+        stroke: { curve: 'smooth', width: 2.5 },
+        tooltip: { fixed: { enabled: false }, x: { show: false }, y: { title: { formatter: () => '' } }, marker: { show: false } }
+    };
 
     /* ==========================================
        🟢 4. ระบบสลับหน้า (Tabs & Auto)
@@ -414,7 +407,7 @@
 
       if (group === 'gate-bf') {
         devContainer.style.display = 'none';
-        bfContainer.style.display = 'flex';
+        bfContainer.style.display = 'flex'; // แสดงตารางหน้า Bag Filter
         headerIcon.className = "fa-solid fa-wind";
         headerIcon.style.color = "var(--bf-primary)";
         headerText.innerText = "CM 10-11 Bag Filter";
@@ -437,7 +430,7 @@
     }
 
     /* ==========================================
-       🟢 5. Initialization (สร้าง UI ทั้งสองระบบ)
+       🟢 5. Initialization (สร้าง UI ทั้งสองระบบให้เหมือนกัน)
        ========================================== */
     function initializeDashboard() {
       // --- Init Vibration UI ---
@@ -478,13 +471,7 @@
         `;
       });
 
-      const sparkOptions = {
-        chart: { type: 'line', width: '100%', height: '100%', sparkline: { enabled: true }, animations: { enabled: false } },
-        stroke: { curve: 'smooth', width: 2.5 },
-        tooltip: { fixed: { enabled: false }, x: { show: false }, y: { title: { formatter: () => '' } }, marker: { show: false } }
-      };
-
-      // สร้าง Sparkline Charts สำหรับแต่ละอุปกรณ์ Vibration
+      // สร้าง Sparkline Charts สำหรับแต่ละอุปกรณ์ (Vibration)
       DEVICE_LIST.forEach(dev => {
         const sparkEl = document.querySelector(`#spark-${dev.id}`);
         if (sparkEl) {
@@ -493,52 +480,34 @@
         }
       });
 
-      // --- Init Bag Filter UI ---
+      // --- Init Bag Filter UI (รูปแบบเดียวกับการ์ด Vibration เป๊ะๆ) ---
       const gateContainer = document.getElementById('gates-container');
+      gateContainer.innerHTML = '';
       gatesConfig.forEach((gate) => {
           gateContainer.innerHTML += `
-              <div class="glass-card" id="card-${gate.id}" onclick="openGateModal('${gate.id}', 'Gate ${gate.name}', '${gate.color}')">
-                  <div class="bf-title">${gate.name}</div>
-                  <div class="bf-status text-ok" id="status-${gate.id}">Wait...</div>
-                  <div class="gauge-wrapper"><canvas id="gauge-${gate.id}"></canvas></div>
-                  <!-- กราฟย่อสำหรับ Gate -->
-                  <div class="charts-wrapper" style="width: 100%; margin-top: 8px;">
-                      <div class="sparkline-container" id="spark-${gate.id}" style="width: 100%; height: 35px;"></div>
+              <div class="status-card" id="card-${gate.id}" onclick="openGateModal('${gate.id}', 'Gate ${gate.name}', '${gate.color}')">
+                <div class="card-info">
+                  <h3>Gate ${gate.name}</h3>
+                  <div class="vib-value-container">
+                      <div class="vib-value-row">
+                          <div class="v-label" style="width: auto;">Press</div>
+                          <div class="value" id="val-${gate.id}">0.00 <span>Bar</span></div>
+                      </div>
                   </div>
+                  <div class="time" id="status-${gate.id}"><i class="fa-solid fa-clock"></i> Wait...</div>
+                </div>
+                <div class="charts-wrapper">
+                  <div class="sparkline-container" id="spark-${gate.id}"></div>
+                </div>
               </div>
           `;
       });
 
-      function applyGaugeConfig(elementId) {
-          let el = document.getElementById(elementId);
-          el.setAttribute('data-type', 'radial-gauge');
-          el.setAttribute('data-width', '250'); 
-          el.setAttribute('data-height', '250');
-          el.setAttribute('data-min-value', '0');
-          el.setAttribute('data-max-value', '10');
-          el.setAttribute('data-major-ticks', '0,2,4,6,8,10');
-          el.setAttribute('data-minor-ticks', '2');
-          el.setAttribute('data-stroke-ticks', 'true');
-          el.setAttribute('data-highlights', '[ {"from": 0, "to": 4, "color": "#ef4444"}, {"from": 4, "to": 10, "color": "#10b981"} ]');
-          el.setAttribute('data-color-plate', 'transparent');
-          el.setAttribute('data-value-box', 'true');
-          el.setAttribute('data-color-value-box-rect', 'transparent');
-          el.setAttribute('data-animation-rule', 'bounce'); 
-          el.setAttribute('data-animation-duration', '500');
-      }
-      
-      gatesConfig.forEach(gate => applyGaugeConfig(`gauge-${gate.id}`));
-      
-      // สร้าง Sparkline Charts สำหรับแต่ละ Gate
+      // สร้าง Sparkline Charts สำหรับแต่ละอุปกรณ์ (Bag Filter)
       gatesConfig.forEach(gate => {
-          const sparkEl = document.querySelector(`#spark-${gate.id}`);
-          if (sparkEl) {
-              sparkCharts[gate.id] = new ApexCharts(sparkEl, { ...sparkOptions, colors: [gate.color], series: [{ data: [] }] });
-              sparkCharts[gate.id].render();
-          }
+        sparkCharts[gate.id] = new ApexCharts(document.querySelector(`#spark-${gate.id}`), { ...sparkOptions, colors: [gate.color], series: [{ data: [] }] });
+        sparkCharts[gate.id].render();
       });
-
-      updateGaugeTheme(); 
 
       updateAutoModeUI();
       startAutoTimer();
@@ -558,7 +527,6 @@
             if (currentVal !== undefined && currentVal !== null) {
                 latestValues[dev.id] = currentVal;
                 
-                // อัปเดตเฉพาะ DOM (เพื่อประหยัด Memory ไม่เก็บลง Array สะสม)
                 const valEl = document.getElementById(`val-${dev.id}`);
                 if (valEl) valEl.innerHTML = currentVal.toFixed(2) + " <span>mm/s</span>";
                 
@@ -601,19 +569,23 @@
         try {
             const data = JSON.parse(message.payloadString);
             
-            // อัปเดตข้อมูลบนเกจเท่านั้น ไม่โหลดเข้า Chart ถ้า Modal ปิดอยู่
             gatesConfig.forEach((gate, idx) => {
                 const val = data[`p${idx+1}`];
-                document.getElementById(`gauge-${gate.id}`).setAttribute('data-value', val);
+                
+                const valEl = document.getElementById(`val-${gate.id}`);
+                if (valEl) valEl.innerHTML = val.toFixed(2) + " <span>Bar</span>";
+
                 const card = document.getElementById(`card-${gate.id}`);
                 const statusText = document.getElementById(`status-${gate.id}`);
                 
                 if (val < 4) {
-                    card.classList.add('bf-alert');
-                    statusText.innerText = "Low Pressure"; statusText.className = "bf-status text-err";
+                    card.classList.add('alert-danger');
+                    statusText.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Low Pressure';
+                    statusText.style.color = '#ef4444';
                 } else {
-                    card.classList.remove('bf-alert');
-                    statusText.innerText = "Normal"; statusText.className = "bf-status text-ok";
+                    card.classList.remove('alert-danger');
+                    statusText.innerHTML = '<i class="fa-solid fa-circle-check"></i> Normal';
+                    statusText.style.color = 'var(--text-sub)';
                 }
             });
         } catch(e) {}
@@ -637,19 +609,16 @@
             const res = await fetch("https://script.google.com/macros/s/AKfycbwkMTHj9lhFm79HaQTtLE4tC77O1ILsmazRb6s5tPdamXZct9hlC7sEwc9Xb3l4XydN/exec");
             bfHistory = await res.json();
             
-            // อัปเดตกราฟย่อ (Sparkline) ของ Bag Filter ทุกตัวที่การ์ด
-            if (bfHistory && bfHistory.length > 0) {
-                // ดึงแค่ 30 จุดล่าสุดมาโชว์บนกราฟย่อ
-                const recentData = bfHistory.slice(-30);
+            // อัปเดต Sparklines เล็กหน้าการ์ด (ดึง 30 จุดล่าสุดมาวาด)
+            if(bfHistory.length > 0) {
                 gatesConfig.forEach(gate => {
-                    if (sparkCharts[gate.id]) {
-                        const plotData = recentData.map(r => r[gate.id]);
+                    const plotData = bfHistory.map(r => r[gate.id]).slice(-30);
+                    if(sparkCharts[gate.id]) {
                         sparkCharts[gate.id].updateSeries([{ data: plotData }]);
                     }
                 });
             }
 
-            // โหลดกราฟ BF ใหญ่ใหม่อัตโนมัติถ้าเปิด Modal ค้างไว้
             if (isModalOpen && currentModalType === 'bf') {
                 renderBFChart();
             }
@@ -660,7 +629,6 @@
        🟢 7. การเปิด Modal และสร้างกราฟ
        ========================================== */
     function clearCharts() {
-      // Memory Cleanup: ทำลายออบเจ็กต์ของกราฟเพื่อคืนพื้นที่ RAM
       if (myChart) { myChart.destroy(); myChart = null; }
       if (myChartTop) { myChartTop.destroy(); myChartTop = null; }
       document.getElementById('vibChartTop').style.display = 'none';
@@ -669,6 +637,8 @@
     // เปิดกราฟ Vibration
     function openVibModal(baseId) {
       currentModalType = 'vib';
+      document.body.setAttribute('data-modal', 'vib'); // ใช้ปรับสีปุ่ม Filter
+
       let topId = baseId + 'TOP';
       let hasTop = DEVICE_LIST.some(d => d.id === topId);
       if (!hasTop) topId = null;
@@ -678,7 +648,6 @@
       const baseDev = DEVICE_LIST.find(d => d.id === baseId);
       document.getElementById('modal-title').innerHTML = `<i class="fa-solid fa-chart-line" style="color: ${baseDev.color}; margin-right:6px;"></i> ${baseDev.label}`;
       
-      // แสดงแผงควบคุมอุณหภูมิ และเวลา
       document.getElementById('modal-temp-bar').style.display = 'flex';
       document.getElementById('modal-time-controls').style.display = 'block';
       
@@ -690,16 +659,15 @@
     // เปิดกราฟ Bag Filter 
     function openGateModal(gateKey, title, colorCode) {
       currentModalType = 'bf';
+      document.body.setAttribute('data-modal', 'bf'); // ใช้ปรับสีปุ่ม Filter ให้เป็นสีฟ้า
+
       isModalOpen = true;
-      
-      // เก็บค่า Gate ที่กำลังถูกเปิดไว้ เพื่อให้ loadDataByDuration ไปวาดต่อได้
       activeGateKey = gateKey;
       activeGateTitle = title;
       activeGateColor = colorCode;
       
       document.getElementById('modal-title').innerHTML = `<i class="fa-solid fa-wind" style="color: ${colorCode}; margin-right:6px;"></i> ${title}`;
       
-      // ซ่อนเฉพาะอุณหภูมิ แต่โชว์ปุ่มเวลา
       document.getElementById('modal-temp-bar').style.display = 'none';
       document.getElementById('modal-time-controls').style.display = 'block';
       
@@ -719,7 +687,7 @@
       document.getElementById('chartModal').classList.remove('show');
       setTimeout(() => {
           document.getElementById('chartModal').style.display = 'none';
-          clearCharts(); // ล้างข้อมูลและตัวแปรเมื่อปิด เพื่อป้องกัน Memory Leak
+          clearCharts(); 
       }, 250);
     }
     function closeModalOutside(event) { if (event.target.id === 'chartModal') closeModal(); }
@@ -728,13 +696,11 @@
     async function loadDataByDuration(hours) {
       currentDurationHours = hours;
       
-      // เคลียร์ปุ่มทั้งหมด แล้วไฮไลต์ปุ่มที่ถูกกด
       document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
       const activeBtn = document.getElementById('btn-' + hours);
       if (activeBtn) activeBtn.classList.add('active');
 
       if (currentModalType === 'vib') {
-          // ====== ลอจิกดึงข้อมูลสำหรับ Vibration ======
           const now = Math.floor(Date.now() / 1000);
           const startTime = now - (hours * 3600);
           
@@ -775,7 +741,6 @@
           }
 
       } else if (currentModalType === 'bf') {
-          // ====== ลอจิกคำนวณเวลาสำหรับ Bag Filter ======
           if (isModalOpen && activeGateKey) {
             renderBFChart();
           }
@@ -836,10 +801,7 @@
             return; 
         }
 
-        // 1 ชม. = 2 ข้อมูล (เพราะส่งทุก 30 นาที) 
-        // ดังนั้น หาจำนวน Limit โดยเอา ชั่วโมง x 2
         const pointsNeeded = Math.max(2, currentDurationHours * 2);
-        // ดึงมาจาก array ย้อนหลังจากท้ายสุด
         const slicedHistory = bfHistory.slice(-pointsNeeded);
 
         const labels = slicedHistory.map(r => r.time);
@@ -847,7 +809,6 @@
 
         const chartData = { labels: labels, plotAx: data }; 
         
-        // อัปเดตข้อความหัวกราฟ (1d Trend, 6h Trend ฯลฯ)
         let timeLabel = currentDurationHours >= 24 ? (currentDurationHours/24) + 'd' : currentDurationHours + 'h';
         document.getElementById('modal-title').innerHTML = `<i class="fa-solid fa-wind" style="color: ${activeGateColor}; margin-right:6px;"></i> ${activeGateTitle} (${timeLabel} Trend)`;
 
@@ -901,7 +862,6 @@
         fill: { type: isVib ? ['gradient', 'solid'] : 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.0, stops: [0, 100] } },
         legend: { show: isVib, position: 'top', horizontalAlign: 'right', labels: { colors: textColor } },
         
-        // 🟢 บังคับแกน X เฉียง 60 องศาตลอดเวลา และโชว์แค่วันที่สำคัญ (tickAmount) ให้ไม่รก
         xaxis: { 
           categories: data.labels, 
           tickAmount: 6, 
@@ -979,25 +939,7 @@
       } else {
         themeBtn.innerHTML = '<i class="fa-solid fa-moon"></i> กลางคืน';
       }
-      updateGaugeTheme();
       if(isModalOpen) loadDataByDuration(currentDurationHours);
-    }
-
-    function updateGaugeTheme() {
-        const isDark = document.body.classList.contains('dark-mode');
-        const titleColor = isDark ? '#f9fafb' : '#111827';
-        const numColor = isDark ? '#8c96a5' : '#6b7280';
-        const tickColor = isDark ? '#8c96a5' : '#9ca3af';
-
-        document.gauges.forEach(gauge => {
-            gauge.update({
-                colorTitle: titleColor,
-                colorNumbers: numColor,
-                colorMajorTicks: tickColor,
-                colorMinorTicks: tickColor,
-                colorValueText: titleColor
-            });
-        });
     }
 
     // Start App
