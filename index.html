@@ -149,7 +149,7 @@
     .chart-wrapper { position: relative; width: 100%; display: flex; flex-direction: column; gap: 12px; }
     .chart-instance { width: 100%; }
 
-    /* ================= Responsive ================= */
+  /* ================= Responsive ================= */
     @media (max-width: 768px) {
       body { padding: 12px; }
       .header-actions { width: 100%; justify-content: space-between; }
@@ -158,6 +158,21 @@
       .glass-card { padding: 8px; }
       .modal-overlay { padding: 12px; } 
       .modal-content { max-height: 88vh; padding: 16px; }
+      
+      /* 🟢 ส่วนที่เพิ่มเข้ามาเพื่อแก้เมนูล้นจอ 🟢 */
+      .main-tabs { 
+        gap: 4px; 
+        padding: 4px; 
+      }
+      .main-tab-btn { 
+        padding: 8px 4px; 
+        font-size: 12px; 
+        letter-spacing: -0.3px; /* บีบตัวอักษรเข้าหากันนิดหน่อยให้ประหยัดพื้นที่ */
+      }
+      /* ซ่อน Scrollbar เผื่อในกรณีที่จอมือถือเล็กมากๆ (เช่น iPhone SE) */
+      .main-tabs::-webkit-scrollbar { 
+        display: none; 
+      }
     }
 
     .apexcharts-text { font-family: 'Inter', sans-serif !important; font-weight: 500; }
