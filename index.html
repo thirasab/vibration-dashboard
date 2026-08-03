@@ -66,7 +66,12 @@
     .wrapper { max-width: 1200px; margin: 0 auto; }
 
     header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
-    header .header-title { flex: 1; min-width: 250px; }
+    
+    /* ================= Logo & Brand ================= */
+    .brand-container { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 250px; }
+    .brand-logo { height: 42px; width: auto; object-fit: contain; border-radius: 6px; }
+    header .header-title { flex: unset; min-width: unset; }
+
     header h1 { margin: 0; font-size: 20px; font-weight: 600; color: var(--header-color); letter-spacing: -0.3px; }
     header p { margin: 2px 0 0 0; color: var(--text-sub); font-size: 13px; }
 
@@ -149,7 +154,7 @@
     .chart-wrapper { position: relative; width: 100%; display: flex; flex-direction: column; gap: 12px; }
     .chart-instance { width: 100%; }
 
-  /* ================= Responsive ================= */
+    /* ================= Responsive ================= */
     @media (max-width: 768px) {
       body { padding: 12px; }
       .header-actions { width: 100%; justify-content: space-between; }
@@ -158,8 +163,8 @@
       .glass-card { padding: 8px; }
       .modal-overlay { padding: 12px; } 
       .modal-content { max-height: 88vh; padding: 16px; }
-      
-      /* 🟢 ส่วนที่เพิ่มเข้ามาเพื่อแก้เมนูล้นจอ 🟢 */
+
+      /* แก้ไขปัญหาเมนูล้นจอ */
       .main-tabs { 
         gap: 4px; 
         padding: 4px; 
@@ -167,9 +172,9 @@
       .main-tab-btn { 
         padding: 8px 4px; 
         font-size: 12px; 
-        letter-spacing: -0.3px; /* บีบตัวอักษรเข้าหากันนิดหน่อยให้ประหยัดพื้นที่ */
+        letter-spacing: -0.3px; 
       }
-      /* ซ่อน Scrollbar เผื่อในกรณีที่จอมือถือเล็กมากๆ (เช่น iPhone SE) */
+      /* ซ่อน Scrollbar เผื่อจอมือถือเล็กมาก */
       .main-tabs::-webkit-scrollbar { 
         display: none; 
       }
@@ -185,9 +190,13 @@
 
   <div class="wrapper">
     <header>
-      <div class="header-title">
-        <h1><i class="fa-solid fa-wave-square" style="color: var(--primary); margin-right: 4px;" id="header-icon"></i> <span id="header-text">มอนิเตอร์ความสั่นสะเทือน</span></h1>
-        <p id="header-sub">ข้อมูลเซ็นเซอร์แบบเรียลไทม์</p>
+      <div class="brand-container">
+        <!-- โลโก้ images.png -->
+        <img src="images.png" alt="Logo" class="brand-logo" onerror="this.style.display='none'">
+        <div class="header-title">
+          <h1><i class="fa-solid fa-wave-square" style="color: var(--primary); margin-right: 4px;" id="header-icon"></i> <span id="header-text">มอนิเตอร์ความสั่นสะเทือน</span></h1>
+          <p id="header-sub">ข้อมูลเซ็นเซอร์แบบเรียลไทม์</p>
+        </div>
       </div>
       <div class="header-actions">
         <button class="btn-action-toggle" onclick="setAlarmLimit()" style="background: var(--accent); color: white;" id="alarm-btn">
