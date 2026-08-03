@@ -245,7 +245,7 @@
       </div>
 
       <div class="modal-body-scroll">
-        <!-- ปุ่มเลือกเวลา (เฉพาะหน้า Vibration) -->
+        <!-- ปุ่มเลือกเวลา (แสดงทั้งคู่แล้ว) -->
         <div class="control-panel" id="modal-time-controls">
           <div class="btn-group">
             <button class="filter-btn" id="btn-1" onclick="loadDataByDuration(1)">1h</button>
@@ -341,6 +341,11 @@
     let activeNodeTop = null; 
     let isModalOpen = false;
     let currentModalType = 'vib'; // 'vib' or 'bf'
+
+    // ตัวแปรสำหรับจำค่ากราฟ Gate ที่เปิดอยู่
+    let activeGateKey = null;
+    let activeGateTitle = '';
+    let activeGateColor = '';
 
     let globalRecords = {}; 
     const alarmSound = new Audio('https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg');
@@ -479,7 +484,7 @@
         tooltip: { fixed: { enabled: false }, x: { show: false }, y: { title: { formatter: () => '' } }, marker: { show: false } }
       };
 
-      // สร้าง Sparkline Charts สำหรับแต่ละอุปกรณ์
+      // สร้าง Sparkline Charts สำหรับแต่ละอุปกรณ์ Vibration
       DEVICE_LIST.forEach(dev => {
         const sparkEl = document.querySelector(`#spark-${dev.id}`);
         if (sparkEl) {
@@ -496,6 +501,10 @@
                   <div class="bf-title">${gate.name}</div>
                   <div class="bf-status text-ok" id="status-${gate.id}">Wait...</div>
                   <div class="gauge-wrapper"><canvas id="gauge-${gate.id}"></canvas></div>
+                  <!-- กราฟย่อสำหรับ Gate -->
+                  <div class="charts-wrapper" style="width: 100%; margin-top: 8px;">
+                      <div class="sparkline-container" id="spark-${gate.id}" style="width: 100%; height: 35px;"></div>
+                  </div>
               </div>
           `;
       });
@@ -519,6 +528,16 @@
       }
       
       gatesConfig.forEach(gate => applyGaugeConfig(`gauge-${gate.id}`));
+      
+      // สร้าง Sparkline Charts สำหรับแต่ละ Gate
+      gatesConfig.forEach(gate => {
+          const sparkEl = document.querySelector(`#spark-${gate.id}`);
+          if (sparkEl) {
+              sparkCharts[gate.id] = new ApexCharts(sparkEl, { ...sparkOptions, colors: [gate.color], series: [{ data: [] }] });
+              sparkCharts[gate.id].render();
+          }
+      });
+
       updateGaugeTheme(); 
 
       updateAutoModeUI();
@@ -617,6 +636,23 @@
         try {
             const res = await fetch("https://script.google.com/macros/s/AKfycbwkMTHj9lhFm79HaQTtLE4tC77O1ILsmazRb6s5tPdamXZct9hlC7sEwc9Xb3l4XydN/exec");
             bfHistory = await res.json();
+            
+            // อัปเดตกราฟย่อ (Sparkline) ของ Bag Filter ทุกตัวที่การ์ด
+            if (bfHistory && bfHistory.length > 0) {
+                // ดึงแค่ 30 จุดล่าสุดมาโชว์บนกราฟย่อ
+                const recentData = bfHistory.slice(-30);
+                gatesConfig.forEach(gate => {
+                    if (sparkCharts[gate.id]) {
+                        const plotData = recentData.map(r => r[gate.id]);
+                        sparkCharts[gate.id].updateSeries([{ data: plotData }]);
+                    }
+                });
+            }
+
+            // โหลดกราฟ BF ใหญ่ใหม่อัตโนมัติถ้าเปิด Modal ค้างไว้
+            if (isModalOpen && currentModalType === 'bf') {
+                renderBFChart();
+            }
         } catch (err) { console.error("Failed to load BF History", err); }
     }
 
@@ -641,6 +677,8 @@
       
       const baseDev = DEVICE_LIST.find(d => d.id === baseId);
       document.getElementById('modal-title').innerHTML = `<i class="fa-solid fa-chart-line" style="color: ${baseDev.color}; margin-right:6px;"></i> ${baseDev.label}`;
+      
+      // แสดงแผงควบคุมอุณหภูมิ และเวลา
       document.getElementById('modal-temp-bar').style.display = 'flex';
       document.getElementById('modal-time-controls').style.display = 'block';
       
@@ -649,19 +687,25 @@
       loadDataByDuration(currentDurationHours);
     }
 
-    // เปิดกราฟ Bag Filter (แก้หัวข้อเป็น 7 วัน)
+    // เปิดกราฟ Bag Filter 
     function openGateModal(gateKey, title, colorCode) {
       currentModalType = 'bf';
       isModalOpen = true;
       
-      document.getElementById('modal-title').innerHTML = `<i class="fa-solid fa-wind" style="color: ${colorCode}; margin-right:6px;"></i> ${title} (7 Days Trend)`;
-      // ซ่อนส่วนของ Vibration
+      // เก็บค่า Gate ที่กำลังถูกเปิดไว้ เพื่อให้ loadDataByDuration ไปวาดต่อได้
+      activeGateKey = gateKey;
+      activeGateTitle = title;
+      activeGateColor = colorCode;
+      
+      document.getElementById('modal-title').innerHTML = `<i class="fa-solid fa-wind" style="color: ${colorCode}; margin-right:6px;"></i> ${title}`;
+      
+      // ซ่อนเฉพาะอุณหภูมิ แต่โชว์ปุ่มเวลา
       document.getElementById('modal-temp-bar').style.display = 'none';
-      document.getElementById('modal-time-controls').style.display = 'none';
+      document.getElementById('modal-time-controls').style.display = 'block';
       
       showModalWindow();
       clearCharts();
-      renderBFChart(gateKey, title, colorCode);
+      loadDataByDuration(currentDurationHours);
     }
 
     function showModalWindow() {
@@ -680,52 +724,61 @@
     }
     function closeModalOutside(event) { if (event.target.id === 'chartModal') closeModal(); }
 
-    // --- เรนเดอร์กราฟ Vibration (ApexCharts) ---
+    // --- โหลดและคำนวณเวลาก่อนสั่งวาด ---
     async function loadDataByDuration(hours) {
-      if(currentModalType !== 'vib') return; 
       currentDurationHours = hours;
+      
+      // เคลียร์ปุ่มทั้งหมด แล้วไฮไลต์ปุ่มที่ถูกกด
       document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
       const activeBtn = document.getElementById('btn-' + hours);
       if (activeBtn) activeBtn.classList.add('active');
 
-      const now = Math.floor(Date.now() / 1000);
-      const startTime = now - (hours * 3600);
-      
-      const promises = DEVICE_LIST.map(dev => 
-        db.ref(`Vibration_Logs/${dev.id}`).orderByChild('gatewayEpoch').startAt(startTime).endAt(now).once('value')
-      );
-      const snapshots = await Promise.all(promises);
+      if (currentModalType === 'vib') {
+          // ====== ลอจิกดึงข้อมูลสำหรับ Vibration ======
+          const now = Math.floor(Date.now() / 1000);
+          const startTime = now - (hours * 3600);
+          
+          const promises = DEVICE_LIST.map(dev => 
+            db.ref(`Vibration_Logs/${dev.id}`).orderByChild('gatewayEpoch').startAt(startTime).endAt(now).once('value')
+          );
+          const snapshots = await Promise.all(promises);
 
-      const isMobile = window.innerWidth <= 768;
-      const timeFormat = (isMobile && currentDurationHours <= 24) ? 'HH:mm' : 'DD/MM HH:mm';
+          const isMobile = window.innerWidth <= 768;
+          const timeFormat = (isMobile && currentDurationHours <= 24) ? 'HH:mm' : 'DD/MM HH:mm';
 
-      snapshots.forEach((snap, index) => {
-        const devId = DEVICE_LIST[index].id;
-        let deviceLabels = []; let plotAx = []; let plotAcc = []; let lastTemp = null;
+          snapshots.forEach((snap, index) => {
+            const devId = DEVICE_LIST[index].id;
+            let deviceLabels = []; let plotAx = []; let plotAcc = []; let lastTemp = null;
 
-        snap.forEach(child => {
-          let d = child.val(); 
-          if(d.gatewayEpoch) {
-              let t = dayjs(d.gatewayEpoch * 1000).format(timeFormat); 
-              if (deviceLabels.length === 0 || deviceLabels[deviceLabels.length - 1] !== t) {
-                  deviceLabels.push(t); plotAx.push(d.ax); plotAcc.push(d.accMag);
-              } else {
-                  plotAx[plotAx.length - 1] = d.ax; plotAcc[plotAcc.length - 1] = d.accMag;
+            snap.forEach(child => {
+              let d = child.val(); 
+              if(d.gatewayEpoch) {
+                  let t = dayjs(d.gatewayEpoch * 1000).format(timeFormat); 
+                  if (deviceLabels.length === 0 || deviceLabels[deviceLabels.length - 1] !== t) {
+                      deviceLabels.push(t); plotAx.push(d.ax); plotAcc.push(d.accMag);
+                  } else {
+                      plotAx[plotAx.length - 1] = d.ax; plotAcc[plotAcc.length - 1] = d.accMag;
+                  }
+                  if(d.temp) lastTemp = d.temp;
               }
-              if(d.temp) lastTemp = d.temp;
+            });
+
+            if (sparkCharts[devId]) sparkCharts[devId].updateSeries([{ data: plotAx.slice(-30) }]);
+            
+            if(!globalRecords[devId]) globalRecords[devId] = {};
+            globalRecords[devId] = { labels: deviceLabels, plotAx, plotAcc, lastTemp };
+          });
+
+          if (isModalOpen && currentModalType === 'vib' && activeNodeBase) {
+            updateVibTempUI();
+            renderVibCharts();
           }
-        });
 
-        // เลื่อนและเก็บข้อมูล sparkline แค่ 30 จุดล่าสุด (ป้องกัน Memory ล้น)
-        if (sparkCharts[devId]) sparkCharts[devId].updateSeries([{ data: plotAx.slice(-30) }]);
-        
-        if(!globalRecords[devId]) globalRecords[devId] = {};
-        globalRecords[devId] = { labels: deviceLabels, plotAx, plotAcc, lastTemp };
-      });
-
-      if (isModalOpen && currentModalType === 'vib' && activeNodeBase) {
-        updateVibTempUI();
-        renderVibCharts();
+      } else if (currentModalType === 'bf') {
+          // ====== ลอจิกคำนวณเวลาสำหรับ Bag Filter ======
+          if (isModalOpen && activeGateKey) {
+            renderBFChart();
+          }
       }
     }
 
@@ -776,21 +829,36 @@
         }
     }
 
-    // --- เรนเดอร์กราฟ Bag Filter (ApexCharts) ---
-    function renderBFChart(gateKey, title, colorCode) {
+    // --- เรนเดอร์กราฟ Bag Filter แบบตัดจำนวนข้อมูลตามเวลาที่เลือก ---
+    function renderBFChart() {
         if(bfHistory.length === 0) {
             document.getElementById('modal-title').innerHTML += " (กำลังโหลดข้อมูล...)";
             return; 
         }
 
-        const labels = bfHistory.map(r => r.time);
-        const data = bfHistory.map(r => r[gateKey]);
+        // 1 ชม. = 2 ข้อมูล (เพราะส่งทุก 30 นาที) 
+        // ดังนั้น หาจำนวน Limit โดยเอา ชั่วโมง x 2
+        const pointsNeeded = Math.max(2, currentDurationHours * 2);
+        // ดึงมาจาก array ย้อนหลังจากท้ายสุด
+        const slicedHistory = bfHistory.slice(-pointsNeeded);
+
+        const labels = slicedHistory.map(r => r.time);
+        const data = slicedHistory.map(r => r[activeGateKey]);
 
         const chartData = { labels: labels, plotAx: data }; 
-        const options = getBaseChartOptions(chartData, title, '', 'chart-bf', 400, false, colorCode);
         
-        myChart = new ApexCharts(document.querySelector("#vibChart"), options);
-        myChart.render();
+        // อัปเดตข้อความหัวกราฟ (1d Trend, 6h Trend ฯลฯ)
+        let timeLabel = currentDurationHours >= 24 ? (currentDurationHours/24) + 'd' : currentDurationHours + 'h';
+        document.getElementById('modal-title').innerHTML = `<i class="fa-solid fa-wind" style="color: ${activeGateColor}; margin-right:6px;"></i> ${activeGateTitle} (${timeLabel} Trend)`;
+
+        const options = getBaseChartOptions(chartData, activeGateTitle, '', 'chart-bf', 400, false, activeGateColor);
+        
+        if (!myChart) {
+            myChart = new ApexCharts(document.querySelector("#vibChart"), options);
+            myChart.render();
+        } else {
+            myChart.updateOptions(options, false, false);
+        }
     }
 
     function getBaseChartOptions(data, title, seriesPrefix, chartId, height, isVib, customColor) {
@@ -833,15 +901,15 @@
         fill: { type: isVib ? ['gradient', 'solid'] : 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.0, stops: [0, 100] } },
         legend: { show: isVib, position: 'top', horizontalAlign: 'right', labels: { colors: textColor } },
         
-        // 🟢 ส่วนที่ปรับปรุง: บังคับเอียง 60 องศา และตั้ง tickAmount = 6 ให้ไม่รกตา
+        // 🟢 บังคับแกน X เฉียง 60 องศาตลอดเวลา และโชว์แค่วันที่สำคัญ (tickAmount) ให้ไม่รก
         xaxis: { 
           categories: data.labels, 
-          tickAmount: 6, // จำกัดให้โชว์แค่วันที่หลัก 6 จุด
+          tickAmount: 6, 
           labels: { 
             style: { colors: textColor, fontSize: '10px' }, 
             hideOverlappingLabels: true, 
-            rotate: -60, // ปรับให้เฉียง 60 องศา
-            rotateAlways: true // บังคับให้เฉียงตลอดเวลาแม้หน้าจอจะกว้าง
+            rotate: -60, 
+            rotateAlways: true 
           }, 
           axisBorder: { show: false }, 
           axisTicks: { show: false } 
@@ -912,7 +980,7 @@
         themeBtn.innerHTML = '<i class="fa-solid fa-moon"></i> กลางคืน';
       }
       updateGaugeTheme();
-      if(currentModalType === 'vib') loadDataByDuration(currentDurationHours);
+      if(isModalOpen) loadDataByDuration(currentDurationHours);
     }
 
     function updateGaugeTheme() {
@@ -938,7 +1006,10 @@
     connectMQTT();
     fetchBFHistory(); 
     loadDataByDuration(6); 
-    setInterval(() => { loadDataByDuration(currentDurationHours); fetchBFHistory(); }, 60000);
+    setInterval(() => { 
+      loadDataByDuration(currentDurationHours); 
+      fetchBFHistory(); 
+    }, 60000);
 
   </script>
 </body>
