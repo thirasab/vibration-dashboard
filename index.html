@@ -317,7 +317,7 @@
         { id: 'p7', name: '6511.76', color: '#38bdf8' },
         { id: 'p8', name: '6511.80', color: '#38bdf8' }
     ];
-    let bfHistory = []; // เก็บข้อมูลย้อนหลัง 48 ชม จาก Google Sheets
+    let bfHistory = []; // เก็บข้อมูลย้อนหลัง จาก Google Sheets
 
     /* ==========================================
        🟢 3. ตัวแปร Global & สถานะแอป
@@ -649,12 +649,12 @@
       loadDataByDuration(currentDurationHours);
     }
 
-    // เปิดกราฟ Bag Filter
+    // เปิดกราฟ Bag Filter (แก้หัวข้อเป็น 7 วัน)
     function openGateModal(gateKey, title, colorCode) {
       currentModalType = 'bf';
       isModalOpen = true;
       
-      document.getElementById('modal-title').innerHTML = `<i class="fa-solid fa-wind" style="color: ${colorCode}; margin-right:6px;"></i> ${title} (48h Trend)`;
+      document.getElementById('modal-title').innerHTML = `<i class="fa-solid fa-wind" style="color: ${colorCode}; margin-right:6px;"></i> ${title} (7 Days Trend)`;
       // ซ่อนส่วนของ Vibration
       document.getElementById('modal-temp-bar').style.display = 'none';
       document.getElementById('modal-time-controls').style.display = 'none';
@@ -797,7 +797,6 @@
       const isDark = document.body.classList.contains('dark-mode');
       const textColor = isDark ? '#8c96a5' : '#6b7280';
       const gridColor = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)';
-      const isMobile = window.innerWidth <= 768;
       const prefixText = seriesPrefix ? `${seriesPrefix} ` : '';
 
       let series = [];
@@ -833,7 +832,21 @@
         stroke: { curve: 'smooth', width: isVib ? [2, 2.5] : 2 }, 
         fill: { type: isVib ? ['gradient', 'solid'] : 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.0, stops: [0, 100] } },
         legend: { show: isVib, position: 'top', horizontalAlign: 'right', labels: { colors: textColor } },
-        xaxis: { categories: data.labels, tickAmount: isMobile ? 4 : 6, labels: { style: { colors: textColor, fontSize: '10px' }, hideOverlappingLabels: true, rotate: isMobile ? 0 : -45 }, axisBorder: { show: false }, axisTicks: { show: false } },
+        
+        // 🟢 ส่วนที่ปรับปรุง: บังคับเอียง 60 องศา และตั้ง tickAmount = 6 ให้ไม่รกตา
+        xaxis: { 
+          categories: data.labels, 
+          tickAmount: 6, // จำกัดให้โชว์แค่วันที่หลัก 6 จุด
+          labels: { 
+            style: { colors: textColor, fontSize: '10px' }, 
+            hideOverlappingLabels: true, 
+            rotate: -60, // ปรับให้เฉียง 60 องศา
+            rotateAlways: true // บังคับให้เฉียงตลอดเวลาแม้หน้าจอจะกว้าง
+          }, 
+          axisBorder: { show: false }, 
+          axisTicks: { show: false } 
+        },
+        
         yaxis: yaxis,
         grid: { borderColor: gridColor, strokeDashArray: 4 },
         theme: { mode: isDark ? 'dark' : 'light' },
