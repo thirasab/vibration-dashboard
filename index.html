@@ -165,19 +165,9 @@
       .modal-content { max-height: 88vh; padding: 16px; }
 
       /* แก้ไขปัญหาเมนูล้นจอ */
-      .main-tabs { 
-        gap: 4px; 
-        padding: 4px; 
-      }
-      .main-tab-btn { 
-        padding: 8px 4px; 
-        font-size: 12px; 
-        letter-spacing: -0.3px; 
-      }
-      /* ซ่อน Scrollbar เผื่อจอมือถือเล็กมาก */
-      .main-tabs::-webkit-scrollbar { 
-        display: none; 
-      }
+      .main-tabs { gap: 4px; padding: 4px; }
+      .main-tab-btn { padding: 8px 4px; font-size: 12px; letter-spacing: -0.3px; }
+      .main-tabs::-webkit-scrollbar { display: none; }
     }
 
     .apexcharts-text { font-family: 'Inter', sans-serif !important; font-weight: 500; }
@@ -489,6 +479,7 @@
         tooltip: { fixed: { enabled: false }, x: { show: false }, y: { title: { formatter: () => '' } }, marker: { show: false } }
       };
 
+      // สร้าง Sparkline Charts สำหรับแต่ละอุปกรณ์
       DEVICE_LIST.forEach(dev => {
         const sparkEl = document.querySelector(`#spark-${dev.id}`);
         if (sparkEl) {
@@ -547,6 +538,8 @@
             let currentVal = data.ax;
             if (currentVal !== undefined && currentVal !== null) {
                 latestValues[dev.id] = currentVal;
+                
+                // อัปเดตเฉพาะ DOM (เพื่อประหยัด Memory ไม่เก็บลง Array สะสม)
                 const valEl = document.getElementById(`val-${dev.id}`);
                 if (valEl) valEl.innerHTML = currentVal.toFixed(2) + " <span>mm/s</span>";
                 
@@ -589,7 +582,7 @@
         try {
             const data = JSON.parse(message.payloadString);
             
-            // อัพเดท Gate 1-8
+            // อัปเดตข้อมูลบนเกจเท่านั้น ไม่โหลดเข้า Chart ถ้า Modal ปิดอยู่
             gatesConfig.forEach((gate, idx) => {
                 const val = data[`p${idx+1}`];
                 document.getElementById(`gauge-${gate.id}`).setAttribute('data-value', val);
@@ -631,6 +624,7 @@
        🟢 7. การเปิด Modal และสร้างกราฟ
        ========================================== */
     function clearCharts() {
+      // Memory Cleanup: ทำลายออบเจ็กต์ของกราฟเพื่อคืนพื้นที่ RAM
       if (myChart) { myChart.destroy(); myChart = null; }
       if (myChartTop) { myChartTop.destroy(); myChartTop = null; }
       document.getElementById('vibChartTop').style.display = 'none';
@@ -679,7 +673,10 @@
     function closeModal() {
       isModalOpen = false;
       document.getElementById('chartModal').classList.remove('show');
-      setTimeout(() => document.getElementById('chartModal').style.display = 'none', 250);
+      setTimeout(() => {
+          document.getElementById('chartModal').style.display = 'none';
+          clearCharts(); // ล้างข้อมูลและตัวแปรเมื่อปิด เพื่อป้องกัน Memory Leak
+      }, 250);
     }
     function closeModalOutside(event) { if (event.target.id === 'chartModal') closeModal(); }
 
@@ -719,7 +716,9 @@
           }
         });
 
+        // เลื่อนและเก็บข้อมูล sparkline แค่ 30 จุดล่าสุด (ป้องกัน Memory ล้น)
         if (sparkCharts[devId]) sparkCharts[devId].updateSeries([{ data: plotAx.slice(-30) }]);
+        
         if(!globalRecords[devId]) globalRecords[devId] = {};
         globalRecords[devId] = { labels: deviceLabels, plotAx, plotAcc, lastTemp };
       });
