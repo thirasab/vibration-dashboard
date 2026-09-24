@@ -22,9 +22,7 @@
   <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
 
   <style>
-    /* =========================================
-       RESET & THEME CONFIGURATION
-       ========================================= */
+    /* RESET & THEME CONFIGURATION */
     *, *::before, *::after { box-sizing: border-box; }
 
     :root {
@@ -66,7 +64,6 @@
 
     header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
     
-    /* Logo & Brand */
     .brand-container { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 250px; }
     .brand-logo { height: 42px; width: auto; object-fit: contain; border-radius: 6px; }
     header .header-title { flex: unset; min-width: unset; }
@@ -84,7 +81,7 @@
     .main-tab-btn.active { background: var(--primary); color: #ffffff; box-shadow: 0 4px 10px rgba(0, 176, 111, 0.2); }
     .main-tab-btn.bf-tab.active { background: var(--bf-primary); box-shadow: 0 4px 10px rgba(56, 189, 248, 0.2); }
 
-    /* Common Card UI */
+    /* Cards */
     .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; margin-bottom: 20px; }
     .status-card { background: var(--card-bg); border-radius: 12px; padding: 16px 20px; box-shadow: var(--shadow); border: var(--border); display: flex; justify-content: space-between; align-items: center; transition: transform 0.15s; cursor: pointer; }
     .status-card:active { transform: scale(0.98); } 
@@ -135,14 +132,12 @@
     button.filter-btn.active { background: var(--card-bg); color: var(--primary); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
     body[data-modal="bf"] button.filter-btn.active { color: var(--bf-primary); }
     
-    /* สไตล์ปุ่ม Live เฉพาะ */
     button.filter-btn#btn-live.active { background: #10b981 !important; color: #ffffff !important; box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3); }
 
     .chart-container { background: var(--card-bg); border-radius: 12px; padding: 8px 4px 12px 4px; border: var(--border); width: 100%; }
     .chart-wrapper { position: relative; width: 100%; display: flex; flex-direction: column; gap: 12px; }
     .chart-instance { width: 100%; }
 
-    /* Responsive */
     @media (max-width: 768px) {
       body { padding: 12px; }
       .header-actions { width: 100%; justify-content: space-between; }
@@ -217,7 +212,6 @@
         <button class="close-btn" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
-      <!-- แถบอุณหภูมิ (เฉพาะหน้า Vibration) -->
       <div class="sensor-stats-bar" id="modal-temp-bar">
         <div class="stat-item">
           <i class="fa-solid fa-temperature-half" style="color: #f59e0b;"></i> 
@@ -227,7 +221,6 @@
       </div>
 
       <div class="modal-body-scroll">
-        <!-- ปุ่มเลือกช่วงเวลา & ปุ่ม Real-time Live -->
         <div class="control-panel" id="modal-time-controls">
           <div class="btn-group">
             <button class="filter-btn active" id="btn-live" onclick="switchToLiveMode()" style="display: none;">
@@ -304,13 +297,12 @@
     ];
     let bfHistory = []; 
 
-    // ตัวแปรสำหรับ Buffer ข้อมูลสด Real-time จาก MQTT
     let isLiveMode = false;
     let bfLiveBuffers = {}; 
-    const MAX_LIVE_POINTS = 40; // เก็บ 40 จุดล่าสุด (~3.3 นาที)
+    const MAX_LIVE_POINTS = 50; // เก็บ 50 จุดล่าสุด
 
     /* ==========================================
-       3. ตัวแปร Global & สถานะแอป
+       3. ตัวแปร Global
        ========================================== */
     let alarmLimit = parseFloat(localStorage.getItem('vibAlarmLimit')) || 40.0;
     let latestValues = {}; 
@@ -330,7 +322,7 @@
     let activeNodeBase = null; 
     let activeNodeTop = null; 
     let isModalOpen = false;
-    let currentModalType = 'vib'; // 'vib' or 'bf'
+    let currentModalType = 'vib';
 
     let activeGateKey = null;
     let activeGateTitle = '';
@@ -348,7 +340,7 @@
     };
 
     /* ==========================================
-       4. ระบบสลับหน้า (Tabs & Auto)
+       4. Auto & Tab Switcher
        ========================================== */
     function toggleAutoMode() {
       isAutoMode = !isAutoMode;
@@ -432,7 +424,7 @@
     }
 
     /* ==========================================
-       5. การสร้าง Dashboard เริ่มต้น
+       5. Initialize Dashboard
        ========================================== */
     function initializeDashboard() {
       document.getElementById('alarm-display').innerText = alarmLimit;
@@ -513,7 +505,7 @@
     }
 
     /* ==========================================
-       6. เชื่อมต่อ Firebase & MQTT
+       6. Live Data (Firebase & MQTT)
        ========================================== */
     function listenLiveStatus() {
       DEVICE_LIST.forEach(dev => {
@@ -547,7 +539,6 @@
       });
     }
 
-    // MQTT Configuration
     const broker = "4d79d42984154e37aab32ca068370f40.s1.eu.hivemq.cloud";
     const port = 8884; 
     const topic = "factory/bagfilter/pressures";
@@ -562,17 +553,19 @@
         setTimeout(connectMQTT, 5000);
     };
 
+    // 🟢 แก้ไข: บันทึกข้อมูลและอัปเดตกราฟแบบ Atomic ป้องกันเส้นกราฟหาย
     client.onMessageArrived = function(message) {
         try {
             const data = JSON.parse(message.payloadString);
             const timeNow = dayjs().format('HH:mm:ss');
             
             gatesConfig.forEach((gate, idx) => {
-                const val = data[`p${idx+1}`] !== undefined ? data[`p${idx+1}`] : 0;
+                const rawVal = data[`p${idx+1}`];
+                const val = (rawVal !== undefined && rawVal !== null) ? parseFloat(rawVal) : 0.0;
                 
-                // 1. อัปเดตการ์ดหลัก
+                // อัปเดตการ์ด
                 const valEl = document.getElementById(`val-${gate.id}`);
-                if (valEl) valEl.innerHTML = Number(val).toFixed(2) + " <span>Bar</span>";
+                if (valEl) valEl.innerHTML = val.toFixed(2) + " <span>Bar</span>";
 
                 const card = document.getElementById(`card-${gate.id}`);
                 const statusText = document.getElementById(`status-${gate.id}`);
@@ -591,7 +584,7 @@
                     }
                 }
 
-                // 2. จัดเก็บ Buffer สำหรับ Live Modal
+                // ดันข้อมูลเข้า Live Buffer
                 if (!bfLiveBuffers[gate.id]) {
                     bfLiveBuffers[gate.id] = { labels: [], data: [] };
                 }
@@ -604,14 +597,14 @@
                 }
             });
 
-            // 3. ถ้าเปิด Modal Bag Filter อยู่ในโหมด Live ให้อัปเดตเข้ากราฟทันที
+            // 🟢 อัปเดตทั้ง series และ xaxis ในคำสั่งเดียว (Single atomic update)
             if (isModalOpen && currentModalType === 'bf' && isLiveMode && activeGateKey) {
                 const curBuf = bfLiveBuffers[activeGateKey];
                 if (curBuf && myChart) {
                     myChart.updateOptions({
-                        xaxis: { categories: [...curBuf.labels] }
+                        xaxis: { categories: curBuf.labels },
+                        series: [{ name: 'Pressure', data: curBuf.data }]
                     }, false, false);
-                    myChart.updateSeries([{ data: [...curBuf.data] }], false);
                 }
             }
         } catch(e) {
@@ -638,7 +631,7 @@
             
             if(bfHistory.length > 0) {
                 gatesConfig.forEach(gate => {
-                    const plotData = bfHistory.map(r => r[gate.id]).slice(-30);
+                    const plotData = bfHistory.map(r => parseFloat(r[gate.id]) || 0).slice(-30);
                     if(sparkCharts[gate.id]) {
                         sparkCharts[gate.id].updateSeries([{ data: plotData }]);
                     }
@@ -652,7 +645,7 @@
     }
 
     /* ==========================================
-       7. Modal & ควบคุมการเรนเดอร์กราฟ
+       7. Modal & Chart Rendering
        ========================================== */
     function clearCharts() {
       if (myChart) { myChart.destroy(); myChart = null; }
@@ -676,7 +669,7 @@
       
       document.getElementById('modal-temp-bar').style.display = 'flex';
       document.getElementById('modal-time-controls').style.display = 'block';
-      document.getElementById('btn-live').style.display = 'none'; // ซ่อนปุ่ม Live ในหน้า Vibration
+      document.getElementById('btn-live').style.display = 'none';
       
       showModalWindow();
       clearCharts();
@@ -694,13 +687,38 @@
       
       document.getElementById('modal-temp-bar').style.display = 'none';
       document.getElementById('modal-time-controls').style.display = 'block';
-      document.getElementById('btn-live').style.display = 'block'; // แสดงปุ่ม Live
+      document.getElementById('btn-live').style.display = 'block';
       
       showModalWindow();
       clearCharts();
       
-      // เริ่มต้นด้วยโหมด Real-time ทันทีที่คลิกการ์ด
+      // ดึงข้อมูลเข้า Buffer ล่วงหน้าเพื่อให้มีเส้นกราฟขึ้นทันที
+      seedLiveBuffer(gateKey);
       switchToLiveMode();
+    }
+
+    // 🟢 ดึงข้อมูลตั้งต้นเข้า Buffer ไม่ให้กราฟเริ่มต้นด้วยความว่างเปล่า
+    function seedLiveBuffer(gateKey) {
+        if (!bfLiveBuffers[gateKey] || bfLiveBuffers[gateKey].data.length < 2) {
+            bfLiveBuffers[gateKey] = { labels: [], data: [] };
+            if (bfHistory && bfHistory.length > 0) {
+                const recent = bfHistory.slice(-20);
+                recent.forEach(r => {
+                    if (r[gateKey] !== undefined && r[gateKey] !== null) {
+                        bfLiveBuffers[gateKey].labels.push(r.time || '');
+                        bfLiveBuffers[gateKey].data.push(parseFloat(r[gateKey]) || 0);
+                    }
+                });
+            }
+            if (bfLiveBuffers[gateKey].data.length === 0) {
+                const valEl = document.getElementById(`val-${gateKey}`);
+                let curVal = valEl ? parseFloat(valEl.innerText) : 0;
+                if (isNaN(curVal)) curVal = 0;
+                const nowStr = dayjs().format('HH:mm:ss');
+                bfLiveBuffers[gateKey].labels.push(nowStr);
+                bfLiveBuffers[gateKey].data.push(curVal);
+            }
+        }
     }
 
     function switchToLiveMode() {
@@ -718,7 +736,7 @@
       if (!activeGateKey) return;
 
       const buf = bfLiveBuffers[activeGateKey] || { labels: [], data: [] };
-      const labels = buf.labels.length > 0 ? buf.labels : ['Connecting...'];
+      const labels = buf.labels.length > 0 ? buf.labels : ['Wait...'];
       const data = buf.data.length > 0 ? buf.data : [0];
 
       document.getElementById('modal-title').innerHTML = 
@@ -752,7 +770,7 @@
     function closeModalOutside(event) { if (event.target.id === 'chartModal') closeModal(); }
 
     async function loadDataByDuration(hours) {
-      isLiveMode = false; // ปิดโหมด Real-time เมื่อเลือกประวัติย้อนหลัง
+      isLiveMode = false; 
       currentDurationHours = hours;
       
       document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
@@ -853,22 +871,53 @@
         }
     }
 
+    // 🟢 แก้ไข: คำนวณจำนวนจุดของ Bag Filter แบบไดนามิกตามความถี่ที่ส่งจริง (ส่งทุก 5 นาที = 12 จุด/ชม.)
+    function getPointsNeededForHours(hours) {
+        let pointsPerHour = 12; // 60 นาที / 5 นาที = 12 จุด/ชม.
+        
+        if (bfHistory.length >= 2) {
+            let t1 = bfHistory[bfHistory.length - 1].time;
+            let t2 = bfHistory[bfHistory.length - 2].time;
+            let d1 = dayjs(t1);
+            let d2 = dayjs(t2);
+            let diffMin = 0;
+            
+            if (d1.isValid() && d2.isValid()) {
+                diffMin = Math.abs(d1.diff(d2, 'minute'));
+            } else if (typeof t1 === 'string' && typeof t2 === 'string') {
+                let m1 = t1.match(/(\d{1,2}):(\d{2})/);
+                let m2 = t2.match(/(\d{1,2}):(\d{2})/);
+                if (m1 && m2) {
+                    let min1 = parseInt(m1[1]) * 60 + parseInt(m1[2]);
+                    let min2 = parseInt(m2[1]) * 60 + parseInt(m2[2]);
+                    diffMin = Math.abs(min1 - min2);
+                    if (diffMin > 720) diffMin = 1440 - diffMin;
+                }
+            }
+            if (diffMin >= 1 && diffMin <= 60) {
+                pointsPerHour = Math.round(60 / diffMin);
+            }
+        }
+        return Math.max(12, hours * pointsPerHour);
+    }
+
     function renderBFChart() {
         if(bfHistory.length === 0) {
             document.getElementById('modal-title').innerHTML += " (กำลังโหลดข้อมูล...)";
             return; 
         }
 
-        const pointsNeeded = Math.max(2, currentDurationHours * 2);
+        // ดึงจำนวนจุดตามชั่วโมงจริง (1 ชม. ได้อย่างน้อย 12 ค่า)
+        const pointsNeeded = getPointsNeededForHours(currentDurationHours);
         const slicedHistory = bfHistory.slice(-pointsNeeded);
 
         const labels = slicedHistory.map(r => r.time);
-        const data = slicedHistory.map(r => r[activeGateKey]);
+        const data = slicedHistory.map(r => parseFloat(r[activeGateKey]) || 0);
 
         const chartData = { labels: labels, plotAx: data }; 
         
         let timeLabel = currentDurationHours >= 24 ? (currentDurationHours/24) + 'd' : currentDurationHours + 'h';
-        document.getElementById('modal-title').innerHTML = `<i class="fa-solid fa-wind" style="color: ${activeGateColor}; margin-right:6px;"></i> ${activeGateTitle} (${timeLabel} Trend)`;
+        document.getElementById('modal-title').innerHTML = `<i class="fa-solid fa-wind" style="color: ${activeGateColor}; margin-right:6px;"></i> ${activeGateTitle} (${timeLabel} Trend - ${data.length} ค่า)`;
 
         const options = getBaseChartOptions(chartData, activeGateTitle, '', 'chart-bf', 400, false, activeGateColor);
         
@@ -903,7 +952,7 @@
       } else {
           colors = [customColor || '#38bdf8'];
           series = [{ name: 'Pressure', type: 'area', data: data.plotAx }];
-          yaxis = [{ min: 0, max: 10, labels: { style: { colors: textColor }, formatter: (v) => v ? Number(v).toFixed(2) : '' }, title: { text: 'Pressure (Bar)', style: { color: colors[0] } } }];
+          yaxis = [{ min: 0, max: 10, labels: { style: { colors: textColor }, formatter: (v) => v ? Number(v).toFixed(2) : '0.00' }, title: { text: 'Pressure (Bar)', style: { color: colors[0] } } }];
       }
 
       let annotations = {};
@@ -917,6 +966,7 @@
         colors: colors,
         dataLabels: { enabled: false },
         stroke: { curve: 'smooth', width: isVib ? [2, 2.5] : 2 }, 
+        markers: { size: isVib ? 0 : 3, hover: { size: 5 } }, // 🟢 เพิ่ม Markers ไม่ให้จุดหาย
         fill: { type: isVib ? ['gradient', 'solid'] : 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.0, stops: [0, 100] } },
         legend: { show: isVib, position: 'top', horizontalAlign: 'right', labels: { colors: textColor } },
         
@@ -941,7 +991,7 @@
     }
 
     /* ==========================================
-       8. Utility Functions (Alarm & Dark Mode)
+       8. Utility Functions
        ========================================== */
     function setAlarmLimit() {
       let userInput = prompt("กำหนดค่าความสั่นสะเทือน (mm/s) ที่ต้องการให้กะพริบแจ้งเตือน:", alarmLimit);
@@ -1003,7 +1053,7 @@
       }
     }
 
-    // Initialize System
+    // เริ่มต้นระบบ
     initializeDashboard();
     listenLiveStatus();
     connectMQTT();
