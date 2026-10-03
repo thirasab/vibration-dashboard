@@ -111,16 +111,44 @@
     .alert-danger .value, .alert-danger h3, .alert-danger .v-label { color: #ef4444 !important; }
     .alert-danger .v-label { background: rgba(239, 68, 68, 0.15); }
 
-    /* Modal */
+    /* Modal & Fullscreen Styles */
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); z-index: 1000; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.2s ease; }
     .modal-overlay.show { display: flex; opacity: 1; }
-    .modal-content { background: var(--bg-color); width: 100%; max-width: 900px; max-height: 90vh; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.4); border: var(--border); transform: scale(0.96); transition: all 0.25s cubic-bezier(0.1, 0.9, 0.2, 1); }
+    .modal-content { background: var(--bg-color); width: 100%; max-width: 950px; max-height: 90vh; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.4); border: var(--border); transform: scale(0.96); transition: all 0.25s cubic-bezier(0.1, 0.9, 0.2, 1); }
     .modal-overlay.show .modal-content { transform: scale(1); }
+
+    /* CSS สำหรับโหมดเต็มจอ (Fullscreen) */
+    .modal-content:fullscreen, .modal-content:-webkit-full-screen {
+      width: 100vw !important;
+      height: 100vh !important;
+      max-width: 100vw !important;
+      max-height: 100vh !important;
+      border-radius: 0 !important;
+      padding: 20px !important;
+    }
+    .modal-content:fullscreen .modal-body-scroll,
+    .modal-content:-webkit-full-screen .modal-body-scroll {
+      height: calc(100vh - 120px) !important;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-content:fullscreen .chart-container,
+    .modal-content:-webkit-full-screen .chart-container {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-content:fullscreen .chart-wrapper,
+    .modal-content:-webkit-full-screen .chart-wrapper {
+      flex-grow: 1;
+    }
 
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0; }
     .modal-title { margin: 0; font-size: 18px; font-weight: 600; color: var(--header-color); }
-    .close-btn { background: var(--btn-bg); color: var(--text-main); border: none; border-radius: 50%; width: 34px; height: 34px; cursor: pointer; display: flex; justify-content: center; align-items: center; }
-    
+    .modal-actions { display: flex; gap: 8px; align-items: center; }
+    .close-btn { background: var(--btn-bg); color: var(--text-main); border: none; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.2s; }
+    .close-btn:hover { background: var(--theme-btn-bg); color: var(--theme-btn-text); }
+
     .sensor-stats-bar { display: flex; gap: 16px; align-items: center; background: var(--card-bg); border: var(--border); border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; }
     .stat-item { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-sub); }
     .stat-item .val { font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 700; color: var(--text-main); }
@@ -134,25 +162,25 @@
     
     button.filter-btn#btn-live.active { background: #10b981 !important; color: #ffffff !important; box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3); }
 
-    .chart-container { background: var(--card-bg); border-radius: 12px; padding: 8px 4px 12px 4px; border: var(--border); width: 100%; }
-    .chart-wrapper { position: relative; width: 100%; display: flex; flex-direction: column; gap: 12px; }
-    .chart-instance { width: 100%; }
+    .chart-container { background: var(--card-bg); border-radius: 12px; padding: 12px; border: var(--border); width: 100%; }
+    .chart-wrapper { position: relative; width: 100%; display: flex; flex-direction: column; gap: 16px; min-height: 380px; }
+    .chart-instance { width: 100%; min-height: 350px; }
 
     @media (max-width: 768px) {
       body { padding: 12px; }
       .header-actions { width: 100%; justify-content: space-between; }
       .status-grid { grid-template-columns: 1fr; gap: 10px; }
       .modal-overlay { padding: 12px; } 
-      .modal-content { max-height: 88vh; padding: 16px; }
+      .modal-content { max-height: 92vh; padding: 16px; }
       .main-tabs { gap: 4px; padding: 4px; }
       .main-tab-btn { padding: 8px 4px; font-size: 12px; letter-spacing: -0.3px; }
       .main-tabs::-webkit-scrollbar { display: none; }
     }
 
     .apexcharts-text { font-family: 'Inter', sans-serif !important; font-weight: 500; }
-    .apexcharts-tooltip { background: var(--card-bg) !important; border: 1px solid var(--border) !important; box-shadow: var(--shadow) !important; border-radius: 8px !important; }
-    .apexcharts-tooltip-title { font-family: 'Prompt', sans-serif !important; font-size: 12px !important; background: rgba(0,0,0,0.02) !important; border-bottom: 1px solid var(--border) !important; font-weight: 600 !important; }
-    body.dark-mode .apexcharts-tooltip-title { background: rgba(255,255,255,0.03) !important; }
+    .apexcharts-tooltip { background: var(--card-bg) !important; border: 1px solid var(--border) !important; box-shadow: var(--shadow) !important; border-radius: 8px !important; color: var(--text-main) !important; }
+    .apexcharts-tooltip-title { font-family: 'Prompt', sans-serif !important; font-size: 12px !important; background: rgba(0,0,0,0.03) !important; border-bottom: 1px solid var(--border) !important; font-weight: 600 !important; }
+    body.dark-mode .apexcharts-tooltip-title { background: rgba(255,255,255,0.05) !important; }
   </style>
 </head>
 <body>
@@ -205,11 +233,18 @@
 
   <!-- Modal แสดงกราฟ -->
   <div class="modal-overlay" id="chartModal" onclick="closeModalOutside(event)">
-    <div class="modal-content">
+    <div class="modal-content" id="modalWindow">
       
       <div class="modal-header">
         <h2 class="modal-title" id="modal-title">Loading...</h2>
-        <button class="close-btn" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
+        <div class="modal-actions">
+          <button class="close-btn" onclick="toggleFullscreen()" title="ขยายเต็มจอ / ย่อหน้าจอ">
+            <i class="fa-solid fa-expand" id="fs-icon"></i>
+          </button>
+          <button class="close-btn" onclick="closeModal()" title="ปิด">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
       </div>
 
       <div class="sensor-stats-bar" id="modal-temp-bar">
@@ -299,10 +334,10 @@
 
     let isLiveMode = false;
     let bfLiveBuffers = {}; 
-    const MAX_LIVE_POINTS = 50; // เก็บ 50 จุดล่าสุด
+    const MAX_LIVE_POINTS = 50;
 
     /* ==========================================
-       3. ตัวแปร Global
+       3. ตัวแปร Global & Chart Configuration
        ========================================== */
     let alarmLimit = parseFloat(localStorage.getItem('vibAlarmLimit')) || 40.0;
     let latestValues = {}; 
@@ -328,7 +363,6 @@
     let activeGateTitle = '';
     let activeGateColor = '';
 
-    let globalRecords = {}; 
     const alarmSound = new Audio('https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg');
     alarmSound.loop = true; 
     let isSoundEnabled = false;
@@ -338,6 +372,66 @@
         stroke: { curve: 'smooth', width: 2.5 },
         tooltip: { fixed: { enabled: false }, x: { show: false }, y: { title: { formatter: () => '' } }, marker: { show: false } }
     };
+
+    /* ฟังก์ชันสร้าง Option สำหรับ ApexCharts แบบละเอียดครบชุด */
+    function getDetailedChartOptions(title, color, yUnit = 'mm/s') {
+      const isDark = document.body.classList.contains('dark-mode');
+      return {
+        chart: {
+          type: 'line',
+          height: 350,
+          zoom: { enabled: true, type: 'x', autoScaleYaxis: true },
+          toolbar: {
+            show: true,
+            tools: {
+              download: '<i class="fa-solid fa-download"></i>',
+              selection: '<i class="fa-solid fa-vector-square"></i>',
+              zoom: '<i class="fa-solid fa-magnifying-glass-plus"></i>',
+              zoomin: true,
+              zoomout: true,
+              pan: '<i class="fa-solid fa-hand"></i>',
+              reset: '<i class="fa-solid fa-rotate-left"></i>'
+            },
+            autoSelected: 'zoom'
+          },
+          animations: { enabled: false }
+        },
+        colors: [color],
+        stroke: { curve: 'smooth', width: 2.5 },
+        markers: { size: 2, hover: { size: 6 } },
+        grid: {
+          borderColor: isDark ? '#222833' : '#e5e7eb',
+          strokeDashArray: 4,
+          xaxis: { lines: { show: true } },
+          yaxis: { lines: { show: true } }
+        },
+        title: {
+          text: title,
+          align: 'left',
+          style: { fontSize: '14px', fontFamily: 'Prompt', color: isDark ? '#f9fafb' : '#111827' }
+        },
+        tooltip: {
+          enabled: true,
+          shared: true,
+          intersect: false,
+          x: { format: 'HH:mm:ss' },
+          y: { formatter: (val) => `${val ? val.toFixed(2) : '0.00'} ${yUnit}` }
+        },
+        xaxis: {
+          type: 'category',
+          labels: {
+            rotate: -30,
+            style: { colors: isDark ? '#8c96a5' : '#6b7280', fontSize: '11px', fontFamily: 'Inter' }
+          }
+        },
+        yaxis: {
+          labels: {
+            formatter: (val) => val ? val.toFixed(2) : '0.00',
+            style: { colors: isDark ? '#8c96a5' : '#6b7280', fontFamily: 'Inter' }
+          }
+        }
+      };
+    }
 
     /* ==========================================
        4. Auto & Tab Switcher
@@ -424,7 +518,32 @@
     }
 
     /* ==========================================
-       5. Initialize Dashboard
+       5. Fullscreen Toggle (ระบบสลับเต็มจอ)
+       ========================================== */
+    function toggleFullscreen() {
+      const modalEl = document.getElementById('modalWindow');
+      const iconEl = document.getElementById('fs-icon');
+
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        if (modalEl.requestFullscreen) {
+          modalEl.requestFullscreen();
+        } else if (modalEl.webkitRequestFullscreen) {
+          modalEl.webkitRequestFullscreen();
+        }
+        iconEl.className = "fa-solid fa-compress";
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+        iconEl.className = "fa-solid fa-expand";
+      }
+      setTimeout(() => window.dispatchEvent(new Event('resize')), 200);
+    }
+
+    /* ==========================================
+       6. Initialize Dashboard
        ========================================== */
     function initializeDashboard() {
       document.getElementById('alarm-display').innerText = alarmLimit;
@@ -505,7 +624,7 @@
     }
 
     /* ==========================================
-       6. Live Data (Firebase & MQTT)
+       7. Live Data (Firebase & MQTT)
        ========================================== */
     function listenLiveStatus() {
       DEVICE_LIST.forEach(dev => {
@@ -553,7 +672,6 @@
         setTimeout(connectMQTT, 5000);
     };
 
-    // 🟢 แก้ไข: บันทึกข้อมูลและอัปเดตกราฟแบบ Atomic ป้องกันเส้นกราฟหาย
     client.onMessageArrived = function(message) {
         try {
             const data = JSON.parse(message.payloadString);
@@ -563,7 +681,6 @@
                 const rawVal = data[`p${idx+1}`];
                 const val = (rawVal !== undefined && rawVal !== null) ? parseFloat(rawVal) : 0.0;
                 
-                // อัปเดตการ์ด
                 const valEl = document.getElementById(`val-${gate.id}`);
                 if (valEl) valEl.innerHTML = val.toFixed(2) + " <span>Bar</span>";
 
@@ -584,7 +701,6 @@
                     }
                 }
 
-                // ดันข้อมูลเข้า Live Buffer
                 if (!bfLiveBuffers[gate.id]) {
                     bfLiveBuffers[gate.id] = { labels: [], data: [] };
                 }
@@ -597,7 +713,6 @@
                 }
             });
 
-            // 🟢 อัปเดตทั้ง series และ xaxis ในคำสั่งเดียว (Single atomic update)
             if (isModalOpen && currentModalType === 'bf' && isLiveMode && activeGateKey) {
                 const curBuf = bfLiveBuffers[activeGateKey];
                 if (curBuf && myChart) {
@@ -637,433 +752,204 @@
                     }
                 });
             }
-
-            if (isModalOpen && currentModalType === 'bf' && !isLiveMode) {
-                renderBFChart();
-            }
-        } catch (err) { console.error("Failed to load BF History", err); }
+        } catch(e) {
+            console.error("Fetch BF history error", e);
+        }
     }
 
     /* ==========================================
-       7. Modal & Chart Rendering
+       8. Modal & Chart Functions
        ========================================== */
-    function clearCharts() {
-      if (myChart) { myChart.destroy(); myChart = null; }
-      if (myChartTop) { myChartTop.destroy(); myChartTop = null; }
-      document.getElementById('vibChartTop').style.display = 'none';
-    }
-
     function openVibModal(baseId) {
       currentModalType = 'vib';
-      isLiveMode = false;
+      activeNodeBase = baseId;
+      activeNodeTop = baseId + 'TOP';
       document.body.setAttribute('data-modal', 'vib');
-
-      let topId = baseId + 'TOP';
-      let hasTop = DEVICE_LIST.some(d => d.id === topId);
-      if (!hasTop) topId = null;
-
-      activeNodeBase = baseId; activeNodeTop = topId; isModalOpen = true;
       
-      const baseDev = DEVICE_LIST.find(d => d.id === baseId);
-      document.getElementById('modal-title').innerHTML = `<i class="fa-solid fa-chart-line" style="color: ${baseDev.color}; margin-right:6px;"></i> ${baseDev.label}`;
-      
+      const baseInfo = DEVICE_LIST.find(d => d.id === baseId);
+      const topInfo = DEVICE_LIST.find(d => d.id === activeNodeTop);
+
+      document.getElementById('modal-title').innerText = baseInfo.label;
       document.getElementById('modal-temp-bar').style.display = 'flex';
-      document.getElementById('modal-time-controls').style.display = 'block';
       document.getElementById('btn-live').style.display = 'none';
-      
-      showModalWindow();
-      clearCharts();
+
+      document.getElementById('chartModal').classList.add('show');
+      isModalOpen = true;
+
+      // ลบเอนสแตนซ์กราฟเดิมถ้ามี
+      if(myChart) { myChart.destroy(); myChart = null; }
+      if(myChartTop) { myChartTop.destroy(); myChartTop = null; }
+
+      const chartTopEl = document.getElementById('vibChartTop');
+      if (topInfo) {
+        chartTopEl.style.display = 'block';
+        myChartTop = new ApexCharts(chartTopEl, getDetailedChartOptions(`${topInfo.label} (Head)`, topInfo.color));
+        myChartTop.render();
+      } else {
+        chartTopEl.style.display = 'none';
+      }
+
+      myChart = new ApexCharts(document.getElementById('vibChart'), getDetailedChartOptions(`${baseInfo.label} ${topInfo ? '(Boot)' : ''}`, baseInfo.color));
+      myChart.render();
+
       loadDataByDuration(currentDurationHours);
     }
 
-    function openGateModal(gateKey, title, colorCode) {
+    function openGateModal(gateId, title, color) {
       currentModalType = 'bf';
+      activeGateKey = gateId;
+      activeGateTitle = title;
+      activeGateColor = color;
       document.body.setAttribute('data-modal', 'bf');
 
-      isModalOpen = true;
-      activeGateKey = gateKey;
-      activeGateTitle = title;
-      activeGateColor = colorCode;
-      
+      document.getElementById('modal-title').innerText = title;
       document.getElementById('modal-temp-bar').style.display = 'none';
-      document.getElementById('modal-time-controls').style.display = 'block';
-      document.getElementById('btn-live').style.display = 'block';
-      
-      showModalWindow();
-      clearCharts();
-      
-      // ดึงข้อมูลเข้า Buffer ล่วงหน้าเพื่อให้มีเส้นกราฟขึ้นทันที
-      seedLiveBuffer(gateKey);
+      document.getElementById('btn-live').style.display = 'inline-block';
+      document.getElementById('vibChartTop').style.display = 'none';
+
+      document.getElementById('chartModal').classList.add('show');
+      isModalOpen = true;
+
+      if(myChart) { myChart.destroy(); myChart = null; }
+      if(myChartTop) { myChartTop.destroy(); myChartTop = null; }
+
+      myChart = new ApexCharts(document.getElementById('vibChart'), getDetailedChartOptions(title, color, 'Bar'));
+      myChart.render();
+
       switchToLiveMode();
     }
 
-    // 🟢 ดึงข้อมูลตั้งต้นเข้า Buffer ไม่ให้กราฟเริ่มต้นด้วยความว่างเปล่า
-    function seedLiveBuffer(gateKey) {
-        if (!bfLiveBuffers[gateKey] || bfLiveBuffers[gateKey].data.length < 2) {
-            bfLiveBuffers[gateKey] = { labels: [], data: [] };
-            if (bfHistory && bfHistory.length > 0) {
-                const recent = bfHistory.slice(-20);
-                recent.forEach(r => {
-                    if (r[gateKey] !== undefined && r[gateKey] !== null) {
-                        bfLiveBuffers[gateKey].labels.push(r.time || '');
-                        bfLiveBuffers[gateKey].data.push(parseFloat(r[gateKey]) || 0);
-                    }
-                });
-            }
-            if (bfLiveBuffers[gateKey].data.length === 0) {
-                const valEl = document.getElementById(`val-${gateKey}`);
-                let curVal = valEl ? parseFloat(valEl.innerText) : 0;
-                if (isNaN(curVal)) curVal = 0;
-                const nowStr = dayjs().format('HH:mm:ss');
-                bfLiveBuffers[gateKey].labels.push(nowStr);
-                bfLiveBuffers[gateKey].data.push(curVal);
-            }
-        }
-    }
-
     function switchToLiveMode() {
-      if (currentModalType !== 'bf') return;
       isLiveMode = true;
-      
-      document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-      const liveBtn = document.getElementById('btn-live');
-      if (liveBtn) liveBtn.classList.add('active');
-
-      renderBFLiveChart();
-    }
-
-    function renderBFLiveChart() {
-      if (!activeGateKey) return;
-
-      const buf = bfLiveBuffers[activeGateKey] || { labels: [], data: [] };
-      const labels = buf.labels.length > 0 ? buf.labels : ['Wait...'];
-      const data = buf.data.length > 0 ? buf.data : [0];
-
-      document.getElementById('modal-title').innerHTML = 
-        `<i class="fa-solid fa-bolt" style="color: #10b981; margin-right:6px;"></i> ${activeGateTitle} (MQTT Real-time Live)`;
-
-      const options = getBaseChartOptions({ labels: labels, plotAx: data }, activeGateTitle, '', 'chart-bf', 400, false, '#10b981');
-      
-      if (!myChart) {
-          myChart = new ApexCharts(document.querySelector("#vibChart"), options);
-          myChart.render();
-      } else {
-          myChart.updateOptions(options, false, false);
+      setActiveFilterButton('btn-live');
+      if (activeGateKey && bfLiveBuffers[activeGateKey]) {
+        const curBuf = bfLiveBuffers[activeGateKey];
+        myChart.updateOptions({
+            xaxis: { categories: curBuf.labels },
+            series: [{ name: 'Pressure', data: curBuf.data }]
+        });
       }
     }
 
-    function showModalWindow() {
-      const modal = document.getElementById('chartModal');
-      modal.style.display = 'flex';
-      setTimeout(() => { modal.classList.add('show'); window.dispatchEvent(new Event('resize')); }, 10);
+    function loadDataByDuration(hours) {
+      isLiveMode = false;
+      currentDurationHours = hours;
+      setActiveFilterButton(`btn-${hours}`);
+
+      if (currentModalType === 'vib') {
+        fetchVibData(activeNodeBase, hours, myChart);
+        if (activeNodeTop && DEVICE_LIST.find(d => d.id === activeNodeTop)) {
+          fetchVibData(activeNodeTop, hours, myChartTop);
+        }
+      } else if (currentModalType === 'bf') {
+        const labels = bfHistory.map(r => dayjs(r.Timestamp).format('DD/MM HH:mm')).slice(-hours * 10);
+        const data = bfHistory.map(r => parseFloat(r[activeGateKey]) || 0).slice(-hours * 10);
+        myChart.updateOptions({
+            xaxis: { categories: labels },
+            series: [{ name: 'Pressure', data: data }]
+        });
+      }
+    }
+
+    function fetchVibData(nodeId, hours, chartInstance) {
+      const startTime = Date.now() - (hours * 60 * 60 * 1000);
+      db.ref(`Vibration_Logs/${nodeId}`)
+        .orderByChild('gatewayEpoch')
+        .startAt(startTime / 1000)
+        .once('value', snap => {
+          const labels = [];
+          const values = [];
+          let lastTemp = null;
+
+          snap.forEach(child => {
+            const val = child.val();
+            labels.push(dayjs(val.gatewayEpoch * 1000).format('HH:mm:ss'));
+            values.push(val.ax);
+            if (val.temp !== undefined) lastTemp = val.temp;
+          });
+
+          if (nodeId === activeNodeBase && lastTemp !== null) {
+            document.getElementById('modal-temp').innerText = `${lastTemp.toFixed(1)} °C`;
+          }
+
+          if (chartInstance) {
+            chartInstance.updateOptions({
+              xaxis: { categories: labels },
+              series: [{ name: 'Vibration', data: values }]
+            });
+          }
+        });
+    }
+
+    function setActiveFilterButton(btnId) {
+      document.querySelectorAll('#modal-time-controls .filter-btn').forEach(b => b.classList.remove('active'));
+      const activeBtn = document.getElementById(btnId);
+      if(activeBtn) activeBtn.classList.add('active');
     }
 
     function closeModal() {
-      isModalOpen = false;
-      isLiveMode = false;
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
       document.getElementById('chartModal').classList.remove('show');
-      setTimeout(() => {
-          document.getElementById('chartModal').style.display = 'none';
-          clearCharts(); 
-      }, 250);
-    }
-    function closeModalOutside(event) { if (event.target.id === 'chartModal') closeModal(); }
-
-    async function loadDataByDuration(hours) {
-      isLiveMode = false; 
-      currentDurationHours = hours;
-      
-      document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-      const activeBtn = document.getElementById('btn-' + hours);
-      if (activeBtn) activeBtn.classList.add('active');
-
-      if (currentModalType === 'vib') {
-          const now = Math.floor(Date.now() / 1000);
-          const startTime = now - (hours * 3600);
-          
-          const promises = DEVICE_LIST.map(dev => 
-            db.ref(`Vibration_Logs/${dev.id}`).orderByChild('gatewayEpoch').startAt(startTime).endAt(now).once('value')
-          );
-          const snapshots = await Promise.all(promises);
-
-          const isMobile = window.innerWidth <= 768;
-          const timeFormat = (isMobile && currentDurationHours <= 24) ? 'HH:mm' : 'DD/MM HH:mm';
-
-          snapshots.forEach((snap, index) => {
-            const devId = DEVICE_LIST[index].id;
-            let deviceLabels = []; let plotAx = []; let plotAcc = []; let lastTemp = null;
-
-            snap.forEach(child => {
-              let d = child.val(); 
-              if(d.gatewayEpoch) {
-                  let t = dayjs(d.gatewayEpoch * 1000).format(timeFormat); 
-                  if (deviceLabels.length === 0 || deviceLabels[deviceLabels.length - 1] !== t) {
-                      deviceLabels.push(t); plotAx.push(d.ax); plotAcc.push(d.accMag);
-                  } else {
-                      plotAx[plotAx.length - 1] = d.ax; plotAcc[plotAcc.length - 1] = d.accMag;
-                  }
-                  if(d.temp) lastTemp = d.temp;
-              }
-            });
-
-            if (sparkCharts[devId]) sparkCharts[devId].updateSeries([{ data: plotAx.slice(-30) }]);
-            
-            if(!globalRecords[devId]) globalRecords[devId] = {};
-            globalRecords[devId] = { labels: deviceLabels, plotAx, plotAcc, lastTemp };
-          });
-
-          if (isModalOpen && currentModalType === 'vib' && activeNodeBase) {
-            updateVibTempUI();
-            renderVibCharts();
-          }
-
-      } else if (currentModalType === 'bf') {
-          if (isModalOpen && activeGateKey) {
-            renderBFChart();
-          }
-      }
+      isModalOpen = false;
     }
 
-    function updateVibTempUI() {
-        const devData = globalRecords[activeNodeBase];
-        const tempDisplay = document.getElementById('modal-temp');
-        let tempStr = ""; let isHighTemp = false;
-        if (devData && devData.lastTemp !== undefined && devData.lastTemp !== null) {
-            tempStr += `Boot: ${devData.lastTemp.toFixed(1)}°C`;
-            if(devData.lastTemp > 60) isHighTemp = true;
-        }
-        if (activeNodeTop && globalRecords[activeNodeTop] && globalRecords[activeNodeTop].lastTemp != null) {
-            if(tempStr) tempStr += ` | `;
-            const topTemp = globalRecords[activeNodeTop].lastTemp;
-            tempStr += `Head: ${topTemp.toFixed(1)}°C`;
-            if(topTemp > 60) isHighTemp = true;
-        }
-        tempDisplay.innerText = tempStr || '-- °C';
-        tempDisplay.style.color = isHighTemp ? '#ef4444' : 'var(--text-main)';
-    }
-
-    function renderVibCharts() {
-        const baseData = globalRecords[activeNodeBase];
-        if (!baseData) return;
-        const baseDev = DEVICE_LIST.find(d => d.id === activeNodeBase);
-        
-        const titleBase = activeNodeTop ? `Boot : ${baseDev.label}` : baseDev.label;
-        const optionsBase = getBaseChartOptions(baseData, titleBase, activeNodeTop ? 'Boot' : '', 'chart-base', activeNodeTop ? 280 : 350, true);
-        
-        if (!myChart) {
-            myChart = new ApexCharts(document.querySelector("#vibChart"), optionsBase);
-            myChart.render();
-        } else { myChart.updateOptions(optionsBase, false, false); }
-
-        const chartTopDiv = document.querySelector("#vibChartTop");
-        if (activeNodeTop && globalRecords[activeNodeTop]) {
-            chartTopDiv.style.display = 'block';
-            const topData = globalRecords[activeNodeTop];
-            const topDev = DEVICE_LIST.find(d => d.id === activeNodeTop);
-            const optionsTop = getBaseChartOptions(topData, `Head : ${topDev.label}`, 'Head', 'chart-top', 280, true);
-            
-            if (!myChartTop) {
-                myChartTop = new ApexCharts(chartTopDiv, optionsTop);
-                myChartTop.render();
-            } else { myChartTop.updateOptions(optionsTop, false, false); }
-        } else {
-            chartTopDiv.style.display = 'none';
-        }
-    }
-
-    // 🟢 แก้ไข: คำนวณจำนวนจุดของ Bag Filter แบบไดนามิกตามความถี่ที่ส่งจริง (ส่งทุก 5 นาที = 12 จุด/ชม.)
-    function getPointsNeededForHours(hours) {
-        let pointsPerHour = 12; // 60 นาที / 5 นาที = 12 จุด/ชม.
-        
-        if (bfHistory.length >= 2) {
-            let t1 = bfHistory[bfHistory.length - 1].time;
-            let t2 = bfHistory[bfHistory.length - 2].time;
-            let d1 = dayjs(t1);
-            let d2 = dayjs(t2);
-            let diffMin = 0;
-            
-            if (d1.isValid() && d2.isValid()) {
-                diffMin = Math.abs(d1.diff(d2, 'minute'));
-            } else if (typeof t1 === 'string' && typeof t2 === 'string') {
-                let m1 = t1.match(/(\d{1,2}):(\d{2})/);
-                let m2 = t2.match(/(\d{1,2}):(\d{2})/);
-                if (m1 && m2) {
-                    let min1 = parseInt(m1[1]) * 60 + parseInt(m1[2]);
-                    let min2 = parseInt(m2[1]) * 60 + parseInt(m2[2]);
-                    diffMin = Math.abs(min1 - min2);
-                    if (diffMin > 720) diffMin = 1440 - diffMin;
-                }
-            }
-            if (diffMin >= 1 && diffMin <= 60) {
-                pointsPerHour = Math.round(60 / diffMin);
-            }
-        }
-        return Math.max(12, hours * pointsPerHour);
-    }
-
-    function renderBFChart() {
-        if(bfHistory.length === 0) {
-            document.getElementById('modal-title').innerHTML += " (กำลังโหลดข้อมูล...)";
-            return; 
-        }
-
-        // ดึงจำนวนจุดตามชั่วโมงจริง (1 ชม. ได้อย่างน้อย 12 ค่า)
-        const pointsNeeded = getPointsNeededForHours(currentDurationHours);
-        const slicedHistory = bfHistory.slice(-pointsNeeded);
-
-        const labels = slicedHistory.map(r => r.time);
-        const data = slicedHistory.map(r => parseFloat(r[activeGateKey]) || 0);
-
-        const chartData = { labels: labels, plotAx: data }; 
-        
-        let timeLabel = currentDurationHours >= 24 ? (currentDurationHours/24) + 'd' : currentDurationHours + 'h';
-        document.getElementById('modal-title').innerHTML = `<i class="fa-solid fa-wind" style="color: ${activeGateColor}; margin-right:6px;"></i> ${activeGateTitle} (${timeLabel} Trend - ${data.length} ค่า)`;
-
-        const options = getBaseChartOptions(chartData, activeGateTitle, '', 'chart-bf', 400, false, activeGateColor);
-        
-        if (!myChart) {
-            myChart = new ApexCharts(document.querySelector("#vibChart"), options);
-            myChart.render();
-        } else {
-            myChart.updateOptions(options, false, false);
-        }
-    }
-
-    function getBaseChartOptions(data, title, seriesPrefix, chartId, height, isVib, customColor) {
-      const isDark = document.body.classList.contains('dark-mode');
-      const textColor = isDark ? '#8c96a5' : '#6b7280';
-      const gridColor = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)';
-      const prefixText = seriesPrefix ? `${seriesPrefix} ` : '';
-
-      let series = [];
-      let yaxis = [];
-      let colors = [];
-
-      if (isVib) {
-          colors = ['#ef4444', '#0ea5e9']; 
-          series = [
-              { name: `${prefixText}RMS`, type: 'area', data: data.plotAx },
-              { name: `${prefixText}Peak`, type: 'line', data: data.plotAcc }
-          ];
-          yaxis = [
-              { seriesName: `${prefixText}RMS`, min: 0, max: (m) => m < (alarmLimit+10) ? alarmLimit+10 : m, labels: { style: { colors: textColor }, formatter: (v) => v ? v.toFixed(2) : '' }, title: { text: 'RMS (mm/s)', style: { color: colors[0] } } },
-              { seriesName: `${prefixText}Peak`, opposite: true, min: 0, labels: { style: { colors: textColor }, formatter: (v) => v ? v.toFixed(2) : '' }, title: { text: 'Peak (g)', style: { color: colors[1] } } }
-          ];
-      } else {
-          colors = [customColor || '#38bdf8'];
-          series = [{ name: 'Pressure', type: 'area', data: data.plotAx }];
-          yaxis = [{ min: 0, max: 10, labels: { style: { colors: textColor }, formatter: (v) => v ? Number(v).toFixed(2) : '0.00' }, title: { text: 'Pressure (Bar)', style: { color: colors[0] } } }];
-      }
-
-      let annotations = {};
-      if (isVib) {
-          annotations = { yaxis: [{ y: alarmLimit, yAxisIndex: 0, borderColor: '#ef4444', strokeDashArray: 5, label: { style: { color: '#fff', background: '#ef4444' }, text: 'ALARM: ' + alarmLimit } }] };
-      }
-
-      return {
-        series: series,
-        chart: { id: chartId, group: isVib ? 'sync-vib' : '', height: height, fontFamily: "'Inter', 'Prompt', sans-serif", background: 'transparent', animations: { enabled: false }, toolbar: { show: false }, zoom: { enabled: false } },
-        colors: colors,
-        dataLabels: { enabled: false },
-        stroke: { curve: 'smooth', width: isVib ? [2, 2.5] : 2 }, 
-        markers: { size: isVib ? 0 : 3, hover: { size: 5 } }, // 🟢 เพิ่ม Markers ไม่ให้จุดหาย
-        fill: { type: isVib ? ['gradient', 'solid'] : 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.3, opacityTo: 0.0, stops: [0, 100] } },
-        legend: { show: isVib, position: 'top', horizontalAlign: 'right', labels: { colors: textColor } },
-        
-        xaxis: { 
-          categories: data.labels, 
-          tickAmount: 6, 
-          labels: { 
-            style: { colors: textColor, fontSize: '10px' }, 
-            hideOverlappingLabels: true, 
-            rotate: -60, 
-            rotateAlways: true 
-          }, 
-          axisBorder: { show: false }, 
-          axisTicks: { show: false } 
-        },
-        
-        yaxis: yaxis,
-        grid: { borderColor: gridColor, strokeDashArray: 4 },
-        theme: { mode: isDark ? 'dark' : 'light' },
-        annotations: annotations
-      };
+    function closeModalOutside(e) {
+      if (e.target.classList.contains('modal-overlay')) closeModal();
     }
 
     /* ==========================================
-       8. Utility Functions
+       9. System Utilities (Alarm, Sound, Theme)
        ========================================== */
     function setAlarmLimit() {
-      let userInput = prompt("กำหนดค่าความสั่นสะเทือน (mm/s) ที่ต้องการให้กะพริบแจ้งเตือน:", alarmLimit);
-      if (userInput !== null && userInput.trim() !== "") {
-        let newLimit = parseFloat(userInput);
-        if (!isNaN(newLimit) && newLimit > 0) {
-          alarmLimit = newLimit;
-          localStorage.setItem('vibAlarmLimit', alarmLimit); 
-          document.getElementById('alarm-display').innerText = alarmLimit; 
-          Object.keys(latestValues).forEach(id => {
-              alertStatus[id] = (latestValues[id] >= alarmLimit);
-              let baseId = id.endsWith('TOP') ? id.replace('TOP', '') : id;
-              let topId = baseId + 'TOP';
-              let hasAlarm = alertStatus[baseId] === true || alertStatus[topId] === true;
-              const card = document.getElementById(`card-${baseId}`);
-              if(card) { hasAlarm ? card.classList.add('alert-danger') : card.classList.remove('alert-danger'); }
-          });
-          triggerAlarmLogic(); 
-          if (isModalOpen && currentModalType === 'vib') loadDataByDuration(currentDurationHours);
-        } else { alert("กรุณากรอกเฉพาะตัวเลขที่มากกว่า 0 เท่านั้นครับ"); }
+      const val = prompt("ตั้งค่าขีดจำกัดแจ้งเตือน (Alarm Limit mm/s):", alarmLimit);
+      if (val !== null && !isNaN(parseFloat(val))) {
+        alarmLimit = parseFloat(val);
+        localStorage.setItem('vibAlarmLimit', alarmLimit);
+        document.getElementById('alarm-display').innerText = alarmLimit;
       }
     }
 
     function toggleSound() {
       isSoundEnabled = !isSoundEnabled;
-      const soundBtn = document.getElementById('sound-toggle');
+      const btn = document.getElementById('sound-toggle');
       if (isSoundEnabled) {
-        soundBtn.innerHTML = '<i class="fa-solid fa-bell"></i> เปิดเสียง';
-        soundBtn.style.background = '#ef4444'; soundBtn.style.color = 'white';
-        alarmSound.play().then(() => alarmSound.pause()).catch(e => console.log(e));
+        btn.innerHTML = '<i class="fa-solid fa-bell"></i> เปิดเสียง';
+        btn.style.background = '#ef4444';
+        btn.style.color = '#ffffff';
       } else {
-        soundBtn.innerHTML = '<i class="fa-solid fa-bell-slash"></i> ปิดเสียง';
-        soundBtn.style.background = 'var(--theme-btn-bg)'; soundBtn.style.color = 'var(--theme-btn-text)';
-        alarmSound.pause(); alarmSound.currentTime = 0;
+        btn.innerHTML = '<i class="fa-solid fa-bell-slash"></i> ปิดเสียง';
+        btn.style.background = 'var(--theme-btn-bg)';
+        btn.style.color = 'var(--theme-btn-text)';
+        alarmSound.pause();
       }
-      triggerAlarmLogic();
     }
 
     function triggerAlarmLogic() {
-      const hasAlarm = Object.values(alertStatus).some(status => status === true);
-      if (hasAlarm) {
-        if (isSoundEnabled && alarmSound.paused) alarmSound.play().catch(err => console.log(err));
+      const hasAnyAlarm = Object.values(alertStatus).some(status => status === true);
+      if (hasAnyAlarm && isSoundEnabled) {
+        alarmSound.play().catch(() => {});
       } else {
-        alarmSound.pause(); alarmSound.currentTime = 0; 
+        alarmSound.pause();
       }
     }
 
     function toggleDarkMode() {
       document.body.classList.toggle('dark-mode');
-      const themeBtn = document.getElementById('theme-toggle');
-      if (document.body.classList.contains('dark-mode')) {
-        themeBtn.innerHTML = '<i class="fa-solid fa-sun"></i> สว่าง';
-      } else {
-        themeBtn.innerHTML = '<i class="fa-solid fa-moon"></i> กลางคืน';
-      }
-      if(isModalOpen) {
-        if(isLiveMode) renderBFLiveChart();
-        else loadDataByDuration(currentDurationHours);
-      }
+      const isDark = document.body.classList.contains('dark-mode');
+      document.getElementById('theme-toggle').innerHTML = isDark 
+        ? '<i class="fa-solid fa-sun"></i> กลางวัน' 
+        : '<i class="fa-solid fa-moon"></i> กลางคืน';
     }
 
-    // เริ่มต้นระบบ
-    initializeDashboard();
-    listenLiveStatus();
-    connectMQTT();
-    fetchBFHistory(); 
-    loadDataByDuration(6); 
-    setInterval(() => { 
-      if(!isLiveMode) loadDataByDuration(currentDurationHours); 
-      fetchBFHistory(); 
-    }, 60000);
-
+    window.onload = function() {
+      initializeDashboard();
+      listenLiveStatus();
+      connectMQTT();
+      fetchBFHistory();
+      setInterval(fetchBFHistory, 60000);
+    };
   </script>
 </body>
 </html>
