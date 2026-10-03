@@ -86,8 +86,8 @@
     .status-card { background: var(--card-bg); border-radius: 12px; padding: 16px 20px; box-shadow: var(--shadow); border: var(--border); display: flex; justify-content: space-between; align-items: center; transition: transform 0.15s; cursor: pointer; }
     .status-card:active { transform: scale(0.98); } 
 
-    .card-info { flex: 1; }
-    .card-info h3 { margin: 0 0 8px 0; font-size: 14px; color: var(--text-sub); font-weight: 600; }
+    .card-info { flex: 1; min-width: 0; }
+    .card-info h3 { margin: 0 0 8px 0; font-size: 14px; color: var(--text-sub); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .vib-value-container { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
     .vib-value-row { display: flex; align-items: baseline; gap: 8px; }
     .vib-value-row .v-label { font-size: 11px; font-weight: 700; color: var(--text-sub); width: 34px; background: rgba(107, 114, 128, 0.1); padding: 2px 4px; border-radius: 4px; text-align: center; }
@@ -95,8 +95,8 @@
     .vib-value-row .value span { font-family: 'Prompt', sans-serif; font-size: 11px; font-weight: 400; color: var(--text-sub); margin-left: 2px; }
     .card-info .time { font-family: 'Inter', sans-serif; font-size: 11px; color: var(--text-sub); display: flex; align-items: center; gap: 4px; }
     
-    .charts-wrapper { display: flex; flex-direction: column; gap: 4px; justify-content: center; align-items: flex-end; }
-    .sparkline-container { width: 100px; height: 35px; pointer-events: none; }
+    .charts-wrapper { display: flex; flex-direction: column; gap: 6px; justify-content: center; align-items: flex-end; min-width: 105px; }
+    .sparkline-container { width: 100px; height: 35px; min-width: 100px; min-height: 35px; pointer-events: none; }
 
     /* Bag Filter Layout */
     .bf-layout { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
@@ -117,7 +117,6 @@
     .modal-content { background: var(--bg-color); width: 100%; max-width: 950px; max-height: 90vh; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.4); border: var(--border); transform: scale(0.96); transition: all 0.25s cubic-bezier(0.1, 0.9, 0.2, 1); }
     .modal-overlay.show .modal-content { transform: scale(1); }
 
-    /* CSS สำหรับโหมดเต็มจอ (Fullscreen) */
     .modal-content:fullscreen, .modal-content:-webkit-full-screen {
       width: 100vw !important;
       height: 100vh !important;
@@ -335,6 +334,8 @@
     let isLiveMode = false;
     let bfLiveBuffers = {}; 
     const MAX_LIVE_POINTS = 50;
+    const MAX_SPARK_POINTS = 20;
+    let vibSparkBuffers = {}; // เก็บค่าประวัติสำหรับ Sparkline ของ Vibration
 
     /* ==========================================
        3. ตัวแปร Global & Chart Configuration
@@ -367,9 +368,16 @@
     alarmSound.loop = true; 
     let isSoundEnabled = false;
 
+    // แก้ไข: กำหนดขนาดแน่นอน (width: 100, height: 35) เพื่อไม่ให้กราฟยุบตัว
     const sparkOptions = {
-        chart: { type: 'line', width: '100%', height: '100%', sparkline: { enabled: true }, animations: { enabled: false } },
-        stroke: { curve: 'smooth', width: 2.5 },
+        chart: { 
+          type: 'line', 
+          width: 100, 
+          height: 35, 
+          sparkline: { enabled: true }, 
+          animations: { enabled: false } 
+        },
+        stroke: { curve: 'smooth', width: 2 },
         tooltip: { fixed: { enabled: false }, x: { show: false }, y: { title: { formatter: () => '' } }, marker: { show: false } }
     };
 
@@ -387,7 +395,7 @@
           },
           pan: {
             enabled: true,
-            mode: 'x' // เปิดระบบ Pan ให้คลิกลากตามแกน X (เวลา)
+            mode: 'x'
           },
           toolbar: {
             show: true,
@@ -400,7 +408,7 @@
               pan: '<i class="fa-solid fa-hand"></i>',
               reset: '<i class="fa-solid fa-rotate-left"></i>'
             },
-            autoSelected: 'pan' // กำหนดให้เครื่องมือเริ่มต้นคือ "การลาก (Pan)" ทันที
+            autoSelected: 'pan'
           },
           animations: { enabled: false }
         },
@@ -522,7 +530,11 @@
           if(card) card.style.display = (dev.group === group) ? 'flex' : 'none';
         });
       }
-      window.dispatchEvent(new Event('resize'));
+
+      // กระตุ้นให้ ApexCharts คำนวณขนาดใหม่เมื่อสลับแท็บ
+      setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+      }, 50);
     }
 
     /* ==========================================
@@ -570,8 +582,10 @@
                 <div class="value" id="val-${topDev.id}">0.00 <span>mm/s</span></div>
             </div>` : '';
 
+        const isVisible = (baseDev.group === currentTabGroup);
+
         devContainer.innerHTML += `
-          <div class="status-card" id="card-${baseDev.id}" onclick="openVibModal('${baseDev.id}')" style="display: none;">
+          <div class="status-card" id="card-${baseDev.id}" onclick="openVibModal('${baseDev.id}')" style="display: ${isVisible ? 'flex' : 'none'};">
             <div class="card-info">
               <h3>${baseDev.label}</h3>
               <div class="vib-value-container">
@@ -591,10 +605,15 @@
         `;
       });
 
+      // สร้าง Sparkline ให้กับ Vibration ทุกตัว
       DEVICE_LIST.forEach(dev => {
         const sparkEl = document.querySelector(`#spark-${dev.id}`);
         if (sparkEl) {
-          sparkCharts[dev.id] = new ApexCharts(sparkEl, { ...sparkOptions, colors: [dev.color], series: [{ data: [] }] });
+          sparkCharts[dev.id] = new ApexCharts(sparkEl, { 
+            ...sparkOptions, 
+            colors: [dev.color], 
+            series: [{ data: [0, 0] }] // ใส่ mock ไว้ก่อนป้องกัน render หลุด
+          });
           sparkCharts[dev.id].render();
         }
       });
@@ -622,8 +641,15 @@
       });
 
       gatesConfig.forEach(gate => {
-        sparkCharts[gate.id] = new ApexCharts(document.querySelector(`#spark-${gate.id}`), { ...sparkOptions, colors: [gate.color], series: [{ data: [] }] });
-        sparkCharts[gate.id].render();
+        const sparkEl = document.querySelector(`#spark-${gate.id}`);
+        if (sparkEl) {
+          sparkCharts[gate.id] = new ApexCharts(sparkEl, { 
+            ...sparkOptions, 
+            colors: [gate.color], 
+            series: [{ data: [0, 0] }] 
+          });
+          sparkCharts[gate.id].render();
+        }
       });
 
       updateAutoModeUI();
@@ -636,6 +662,24 @@
        ========================================== */
     function listenLiveStatus() {
       DEVICE_LIST.forEach(dev => {
+        // 1. ดึงประวัติ 20 จุดล่าสุดมาเติมลง Sparkline ทันทีตอนโหลดหน้า
+        db.ref(`Vibration_Logs/${dev.id}`).limitToLast(MAX_SPARK_POINTS).once('value', snap => {
+          const initPoints = [];
+          snap.forEach(c => {
+            const val = c.val();
+            if (val && val.ax !== undefined && val.ax !== null) {
+              initPoints.push(parseFloat(val.ax));
+            }
+          });
+          if (initPoints.length > 0) {
+            vibSparkBuffers[dev.id] = initPoints;
+            if (sparkCharts[dev.id]) {
+              sparkCharts[dev.id].updateSeries([{ data: initPoints }]);
+            }
+          }
+        });
+
+        // 2. ฟังค่า Real-time แล้วนำค่าใหม่ดันเข้า Sparkline ต่อเนื่อง
         db.ref(`Vibration_Logs/${dev.id}`).limitToLast(1).on('value', snap => {
           snap.forEach(child => {
             let data = child.val();
@@ -660,6 +704,16 @@
                     else card.classList.remove('alert-danger');
                 }
                 triggerAlarmLogic();
+
+                // อัปเดต Sparkline แบบ Real-time
+                if (!vibSparkBuffers[dev.id]) vibSparkBuffers[dev.id] = [];
+                vibSparkBuffers[dev.id].push(currentVal);
+                if (vibSparkBuffers[dev.id].length > MAX_SPARK_POINTS) {
+                  vibSparkBuffers[dev.id].shift();
+                }
+                if (sparkCharts[dev.id]) {
+                  sparkCharts[dev.id].updateSeries([{ data: vibSparkBuffers[dev.id] }]);
+                }
             }
           });
         });
@@ -719,6 +773,11 @@
                     bfLiveBuffers[gate.id].labels.shift();
                     bfLiveBuffers[gate.id].data.shift();
                 }
+
+                // อัปเดต Sparkline ของ Bag Filter ตามค่า MQTT
+                if (sparkCharts[gate.id]) {
+                  sparkCharts[gate.id].updateSeries([{ data: bfLiveBuffers[gate.id].data.slice(-MAX_SPARK_POINTS) }]);
+                }
             });
 
             if (isModalOpen && currentModalType === 'bf' && isLiveMode && activeGateKey) {
@@ -754,7 +813,7 @@
             
             if(bfHistory.length > 0) {
                 gatesConfig.forEach(gate => {
-                    const plotData = bfHistory.map(r => parseFloat(r[gate.id]) || 0).slice(-30);
+                    const plotData = bfHistory.map(r => parseFloat(r[gate.id]) || 0).slice(-MAX_SPARK_POINTS);
                     if(sparkCharts[gate.id]) {
                         sparkCharts[gate.id].updateSeries([{ data: plotData }]);
                     }
@@ -784,7 +843,6 @@
       document.getElementById('chartModal').classList.add('show');
       isModalOpen = true;
 
-      // ลบอินสแตนซ์กราฟเดิมถ้ามี
       if(myChart) { myChart.destroy(); myChart = null; }
       if(myChartTop) { myChartTop.destroy(); myChartTop = null; }
 
