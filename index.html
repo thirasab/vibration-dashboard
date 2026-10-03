@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>ระบบมอนิเตอร์อัจฉริยะ (Vib & Bag Filter)</title>
+  <title>ระบบมอนิเตอร์อัจฉริยะ (Vib, Sound & Bag Filter)</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
-  <!-- Firebase (Vibration) -->
+  <!-- Firebase (Vibration & Sound) -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   
@@ -116,7 +116,7 @@
     /* Modal & Fullscreen Styles */
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); z-index: 1000; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.2s ease; }
     .modal-overlay.show { display: flex; opacity: 1; }
-    .modal-content { background: var(--bg-color); width: 100%; max-width: 950px; max-height: 90vh; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.4); border: var(--border); transform: scale(0.96); transition: all 0.25s cubic-bezier(0.1, 0.9, 0.2, 1); }
+    .modal-content { background: var(--bg-color); width: 100%; max-width: 980px; max-height: 92vh; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.4); border: var(--border); transform: scale(0.96); transition: all 0.25s cubic-bezier(0.1, 0.9, 0.2, 1); }
     .modal-overlay.show .modal-content { transform: scale(1); }
 
     .modal-content:fullscreen, .modal-content:-webkit-full-screen {
@@ -154,7 +154,7 @@
     .stat-item { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-sub); }
     .stat-item .val { font-family: 'Inter', sans-serif; font-size: 16px; font-weight: 700; color: var(--text-main); }
 
-    .modal-body-scroll { flex-grow: 1; overflow-y: auto; overflow-x: hidden; padding-right: 4px; }
+    .modal-body-scroll { flex-grow: 1; overflow-y: auto; overflow-x: hidden; padding-right: 6px; }
     .control-panel { background: var(--tab-bg); border-radius: 10px; padding: 4px; margin-bottom: 12px; }
     .btn-group { display: flex; gap: 2px; width: 100%; }
     button.filter-btn { flex: 1; padding: 8px 0; border: none; border-radius: 8px; cursor: pointer; background: transparent; color: var(--text-sub); font-family: 'Inter', 'Prompt', sans-serif; font-weight: 600; font-size: 13px; transition: all 0.2s; }
@@ -163,9 +163,9 @@
     
     button.filter-btn#btn-live.active { background: #10b981 !important; color: #ffffff !important; box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3); }
 
-    .chart-container { background: var(--card-bg); border-radius: 12px; padding: 12px; border: var(--border); width: 100%; }
-    .chart-wrapper { position: relative; width: 100%; display: flex; flex-direction: column; gap: 16px; min-height: 380px; }
-    .chart-instance { width: 100%; min-height: 350px; }
+    .chart-container { background: var(--card-bg); border-radius: 12px; padding: 14px; border: var(--border); width: 100%; }
+    .chart-wrapper { position: relative; width: 100%; display: flex; flex-direction: column; gap: 18px; }
+    .chart-instance { width: 100%; min-height: 280px; }
 
     @media (max-width: 768px) {
       body { padding: 12px; }
@@ -278,8 +278,12 @@
 
         <div class="chart-container">
           <div class="chart-wrapper">
+            <!-- 1. กราฟ Vibration Boot -->
             <div id="vibChart" class="chart-instance"></div>
+            <!-- 2. กราฟ Vibration Head (ถ้ามี) -->
             <div id="vibChartTop" class="chart-instance" style="display: none;"></div>
+            <!-- 3. กราฟ Sound History (dB) -->
+            <div id="soundChart" class="chart-instance" style="display: none;"></div>
           </div>
         </div>
       </div>
@@ -343,7 +347,7 @@
     const MAX_LIVE_POINTS = 50;
     const MAX_SPARK_POINTS = 20;
     let vibSparkBuffers = {}; 
-    let soundSparkBuffers = {}; // บัฟเฟอร์เก็บค่า Sound Sparkline
+    let soundSparkBuffers = {}; 
 
     /* ==========================================
        3. ตัวแปร Global & Chart Configuration
@@ -361,6 +365,7 @@
 
     let myChart = null; 
     let myChartTop = null; 
+    let myChartSound = null; // อินสแตนซ์กราฟเสียงใหญ่ใน Modal
     let sparkCharts = {}; 
     let currentDurationHours = 6; 
     let activeNodeBase = null; 
@@ -393,7 +398,7 @@
       return {
         chart: {
           type: 'line',
-          height: 350,
+          height: 280,
           zoom: { enabled: true, type: 'x', autoScaleYaxis: true },
           pan: { enabled: true, mode: 'x' },
           toolbar: {
@@ -423,7 +428,7 @@
         title: {
           text: title,
           align: 'left',
-          style: { fontSize: '14px', fontFamily: 'Prompt', color: isDark ? '#f9fafb' : '#111827' }
+          style: { fontSize: '13px', fontFamily: 'Prompt', color: isDark ? '#f9fafb' : '#111827' }
         },
         tooltip: {
           enabled: true,
@@ -441,7 +446,7 @@
         },
         yaxis: {
           labels: {
-            formatter: (val) => val ? val.toFixed(2) : '0.00',
+            formatter: (val) => val !== undefined && val !== null ? val.toFixed(2) : '0.00',
             style: { colors: isDark ? '#8c96a5' : '#6b7280', fontFamily: 'Inter' }
           }
         }
@@ -559,7 +564,7 @@
     }
 
     /* ==========================================
-       6. Initialize Dashboard (เพิ่มการ์ด Sound)
+       6. Initialize Dashboard
        ========================================== */
     function initializeDashboard() {
       document.getElementById('alarm-display').innerText = alarmLimit;
@@ -610,7 +615,6 @@
       bases.forEach(baseDev => {
         const topDev = DEVICE_LIST.find(d => d.id === baseDev.id + 'TOP');
 
-        // กราฟ Boot
         const sparkEl = document.querySelector(`#spark-${baseDev.id}`);
         if (sparkEl) {
           sparkCharts[baseDev.id] = new ApexCharts(sparkEl, { 
@@ -621,7 +625,6 @@
           sparkCharts[baseDev.id].render();
         }
 
-        // กราฟ Head (ถ้ามี)
         if (topDev) {
           const sparkTopEl = document.querySelector(`#spark-${topDev.id}`);
           if (sparkTopEl) {
@@ -634,7 +637,6 @@
           }
         }
 
-        // กราฟ Sound
         const sparkSoundEl = document.querySelector(`#spark-sound-${baseDev.id}`);
         if (sparkSoundEl) {
           sparkCharts['sound-' + baseDev.id] = new ApexCharts(sparkSoundEl, { 
@@ -686,13 +688,13 @@
     }
 
     /* ==========================================
-       7. Live Data (Firebase & Sound Processing)
+       7. Live Data (Firebase & MQTT)
        ========================================== */
     function listenLiveStatus() {
       DEVICE_LIST.forEach(dev => {
         const baseId = dev.id.endsWith('TOP') ? dev.id.replace('TOP', '') : dev.id;
 
-        // 1. ดึงประวัติ 20 จุดล่าสุด (ทั้ง Vib และ Sound)
+        // 1. ดึงข้อมูล 20 จุดล่าสุดมาพล็อต sparkline
         db.ref(`Vibration_Logs/${dev.id}`).limitToLast(MAX_SPARK_POINTS).once('value', snap => {
           const initPoints = [];
           const soundPoints = [];
@@ -701,7 +703,8 @@
             if (val && val.ax !== undefined && val.ax !== null) {
               initPoints.push(parseFloat(val.ax));
             }
-            const sVal = (val.sound !== undefined && val.sound !== null) ? parseFloat(val.sound) :
+            const sVal = (val.soundMax !== undefined && val.soundMax !== null) ? parseFloat(val.soundMax) :
+                         (val.sound !== undefined && val.sound !== null) ? parseFloat(val.sound) :
                          (val.snd !== undefined && val.snd !== null) ? parseFloat(val.snd) :
                          (val.noise !== undefined && val.noise !== null) ? parseFloat(val.noise) : null;
             if (sVal !== null) soundPoints.push(sVal);
@@ -728,7 +731,8 @@
           snap.forEach(child => {
             let data = child.val();
             let currentVal = data.ax;
-            let soundVal = (data.sound !== undefined && data.sound !== null) ? parseFloat(data.sound) :
+            let soundVal = (data.soundMax !== undefined && data.soundMax !== null) ? parseFloat(data.soundMax) :
+                           (data.sound !== undefined && data.sound !== null) ? parseFloat(data.sound) :
                            (data.snd !== undefined && data.snd !== null) ? parseFloat(data.snd) :
                            (data.noise !== undefined && data.noise !== null) ? parseFloat(data.noise) : null;
 
@@ -759,7 +763,7 @@
                 if (sparkCharts[dev.id]) sparkCharts[dev.id].updateSeries([{ data: vibSparkBuffers[dev.id] }]);
             }
 
-            // จัดการข้อมูล Sound (ระดับเสียง)
+            // จัดการข้อมูลระดับเสียง (Sound dB)
             if (soundVal !== null && !dev.id.endsWith('TOP')) {
                 const soundEl = document.getElementById(`val-sound-${baseId}`);
                 if (soundEl) soundEl.innerHTML = soundVal.toFixed(1) + " <span>dB</span>";
@@ -770,6 +774,11 @@
                 
                 if (sparkCharts['sound-' + baseId]) {
                   sparkCharts['sound-' + baseId].updateSeries([{ data: soundSparkBuffers[baseId] }]);
+                }
+
+                // ถ้ากำลังเปิด Modal ของเครื่องนี้อยู่ ให้ปรับค่าด้านบนด้วย
+                if (isModalOpen && activeNodeBase === baseId) {
+                  document.getElementById('modal-sound').innerText = `${soundVal.toFixed(1)} dB`;
                 }
             }
           });
@@ -881,7 +890,7 @@
     }
 
     /* ==========================================
-       8. Modal & Chart Functions
+       8. Modal & Multi-Chart Functions (Vib + Sound)
        ========================================== */
     function openVibModal(baseId) {
       currentModalType = 'vib';
@@ -900,20 +909,30 @@
       document.getElementById('chartModal').classList.add('show');
       isModalOpen = true;
 
+      // ลบอินสแตนซ์เดิมออก
       if(myChart) { myChart.destroy(); myChart = null; }
       if(myChartTop) { myChartTop.destroy(); myChartTop = null; }
+      if(myChartSound) { myChartSound.destroy(); myChartSound = null; }
 
+      // 1. กราฟ Vibration Boot
+      myChart = new ApexCharts(document.getElementById('vibChart'), getDetailedChartOptions(`${baseInfo.label} ความสั่นสะเทือน ${topInfo ? '(Boot)' : ''}`, baseInfo.color, 'mm/s'));
+      myChart.render();
+
+      // 2. กราฟ Vibration Head (ถ้ามี)
       const chartTopEl = document.getElementById('vibChartTop');
       if (topInfo) {
         chartTopEl.style.display = 'block';
-        myChartTop = new ApexCharts(chartTopEl, getDetailedChartOptions(`${topInfo.label} (Head)`, topInfo.color));
+        myChartTop = new ApexCharts(chartTopEl, getDetailedChartOptions(`${topInfo.label} ความสั่นสะเทือน (Head)`, topInfo.color, 'mm/s'));
         myChartTop.render();
       } else {
         chartTopEl.style.display = 'none';
       }
 
-      myChart = new ApexCharts(document.getElementById('vibChart'), getDetailedChartOptions(`${baseInfo.label} ${topInfo ? '(Boot)' : ''}`, baseInfo.color));
-      myChart.render();
+      // 3. กราฟ Sound History (dB)
+      const chartSoundEl = document.getElementById('soundChart');
+      chartSoundEl.style.display = 'block';
+      myChartSound = new ApexCharts(chartSoundEl, getDetailedChartOptions(`${baseInfo.label} ระดับเสียง (Sound History)`, '#f59e0b', 'dB'));
+      myChartSound.render();
 
       loadDataByDuration(currentDurationHours);
     }
@@ -929,12 +948,14 @@
       document.getElementById('modal-temp-bar').style.display = 'none';
       document.getElementById('btn-live').style.display = 'inline-block';
       document.getElementById('vibChartTop').style.display = 'none';
+      document.getElementById('soundChart').style.display = 'none';
 
       document.getElementById('chartModal').classList.add('show');
       isModalOpen = true;
 
       if(myChart) { myChart.destroy(); myChart = null; }
       if(myChartTop) { myChartTop.destroy(); myChartTop = null; }
+      if(myChartSound) { myChartSound.destroy(); myChartSound = null; }
 
       myChart = new ApexCharts(document.getElementById('vibChart'), getDetailedChartOptions(title, color, 'Bar'));
       myChart.render();
@@ -960,9 +981,12 @@
       setActiveFilterButton(`btn-${hours}`);
 
       if (currentModalType === 'vib') {
-        fetchVibData(activeNodeBase, hours, myChart);
+        // ดึงข้อมูลสำหรับ Base node (พร้อม Sound)
+        fetchVibData(activeNodeBase, hours, myChart, true);
+        
+        // ถ้ามี Head node ให้ดึงแยก
         if (activeNodeTop && DEVICE_LIST.find(d => d.id === activeNodeTop)) {
-          fetchVibData(activeNodeTop, hours, myChartTop);
+          fetchVibData(activeNodeTop, hours, myChartTop, false);
         }
       } else if (currentModalType === 'bf') {
         const labels = bfHistory.map(r => dayjs(r.Timestamp).format('DD/MM HH:mm')).slice(-hours * 10);
@@ -974,7 +998,7 @@
       }
     }
 
-    function fetchVibData(nodeId, hours, chartInstance) {
+    function fetchVibData(nodeId, hours, chartInstance, isBaseNode = false) {
       const startTime = Date.now() - (hours * 60 * 60 * 1000);
       db.ref(`Vibration_Logs/${nodeId}`)
         .orderByChild('gatewayEpoch')
@@ -982,30 +1006,49 @@
         .once('value', snap => {
           const labels = [];
           const values = [];
+          const soundValues = [];
           let lastTemp = null;
           let lastSound = null;
 
           snap.forEach(child => {
             const val = child.val();
             labels.push(dayjs(val.gatewayEpoch * 1000).format('HH:mm:ss'));
-            values.push(val.ax);
+            values.push(val.ax !== undefined ? val.ax : 0);
             if (val.temp !== undefined) lastTemp = val.temp;
-            const sVal = (val.sound !== undefined && val.sound !== null) ? parseFloat(val.sound) :
+
+            // ตรวจสอบชื่อฟิลด์ Sound ครบทุกรูปแบบ
+            const sVal = (val.soundMax !== undefined && val.soundMax !== null) ? parseFloat(val.soundMax) :
+                         (val.sound !== undefined && val.sound !== null) ? parseFloat(val.sound) :
                          (val.snd !== undefined && val.snd !== null) ? parseFloat(val.snd) :
                          (val.noise !== undefined && val.noise !== null) ? parseFloat(val.noise) : null;
-            if (sVal !== null) lastSound = sVal;
+            if (sVal !== null) {
+              soundValues.push(sVal);
+              lastSound = sVal;
+            } else {
+              soundValues.push(null);
+            }
           });
 
-          if (nodeId === activeNodeBase) {
-            if (lastTemp !== null) document.getElementById('modal-temp').innerText = `${lastTemp.toFixed(1)} °C`;
-            if (lastSound !== null) document.getElementById('modal-sound').innerText = `${lastSound.toFixed(1)} dB`;
-          }
-
+          // อัปเดตกราฟการสั่นสะเทือน
           if (chartInstance) {
             chartInstance.updateOptions({
               xaxis: { categories: labels },
               series: [{ name: 'Vibration', data: values }]
             });
+          }
+
+          // ถ้าเป็น Base Node ให้จัดการข้อมูลเสียง & อุณหภูมิ
+          if (isBaseNode) {
+            if (lastTemp !== null) document.getElementById('modal-temp').innerText = `${lastTemp.toFixed(1)} °C`;
+            if (lastSound !== null) document.getElementById('modal-sound').innerText = `${lastSound.toFixed(1)} dB`;
+
+            // อัปเดตข้อมูลเข้ากราฟประวัติเสียง (Sound Chart)
+            if (myChartSound) {
+              myChartSound.updateOptions({
+                xaxis: { categories: labels },
+                series: [{ name: 'Sound Max', data: soundValues }]
+              });
+            }
           }
         });
     }
