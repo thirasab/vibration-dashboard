@@ -373,14 +373,22 @@
         tooltip: { fixed: { enabled: false }, x: { show: false }, y: { title: { formatter: () => '' } }, marker: { show: false } }
     };
 
-    /* ฟังก์ชันสร้าง Option สำหรับ ApexCharts แบบละเอียดครบชุด */
+    /* ฟังก์ชันสร้าง Option สำหรับ ApexCharts แบบคลิกลากดูย้อนหลังได้ทันที */
     function getDetailedChartOptions(title, color, yUnit = 'mm/s') {
       const isDark = document.body.classList.contains('dark-mode');
       return {
         chart: {
           type: 'line',
           height: 350,
-          zoom: { enabled: true, type: 'x', autoScaleYaxis: true },
+          zoom: { 
+            enabled: true, 
+            type: 'x', 
+            autoScaleYaxis: true 
+          },
+          pan: {
+            enabled: true,
+            mode: 'x' // เปิดระบบ Pan ให้คลิกลากตามแกน X (เวลา)
+          },
           toolbar: {
             show: true,
             tools: {
@@ -392,7 +400,7 @@
               pan: '<i class="fa-solid fa-hand"></i>',
               reset: '<i class="fa-solid fa-rotate-left"></i>'
             },
-            autoSelected: 'zoom'
+            autoSelected: 'pan' // กำหนดให้เครื่องมือเริ่มต้นคือ "การลาก (Pan)" ทันที
           },
           animations: { enabled: false }
         },
@@ -776,7 +784,7 @@
       document.getElementById('chartModal').classList.add('show');
       isModalOpen = true;
 
-      // ลบเอนสแตนซ์กราฟเดิมถ้ามี
+      // ลบอินสแตนซ์กราฟเดิมถ้ามี
       if(myChart) { myChart.destroy(); myChart = null; }
       if(myChartTop) { myChartTop.destroy(); myChartTop = null; }
 
