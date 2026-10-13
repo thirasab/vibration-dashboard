@@ -88,7 +88,16 @@
     .status-card:active { transform: scale(0.98); } 
 
     .card-info { flex: 1; min-width: 0; }
-    .card-info h3 { margin: 0 0 8px 0; font-size: 14px; color: var(--text-sub); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    
+    /* Device Header & Online Status */
+    .card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; width: 100%; gap: 8px; }
+    .card-header h3 { margin: 0; font-size: 14px; color: var(--text-sub); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+    .device-status { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 12px; background: var(--btn-bg); color: var(--text-sub); transition: 0.3s; }
+    .device-status.online { background: rgba(16, 185, 129, 0.15); color: var(--status-ok); }
+    .device-status.offline { background: rgba(239, 68, 68, 0.15); color: var(--status-error); }
+    .device-status .status-dot { width: 6px; height: 6px; border-radius: 50%; background-color: currentColor; box-shadow: none; }
+    body.dark-mode .device-status { background: rgba(255,255,255,0.05); }
+
     .vib-value-container { display: flex; flex-direction: column; gap: 5px; margin-bottom: 8px; }
     .vib-value-row { display: flex; align-items: baseline; gap: 8px; }
     .vib-value-row .v-label { font-size: 11px; font-weight: 700; color: var(--text-sub); width: 38px; background: rgba(107, 114, 128, 0.1); padding: 2px 4px; border-radius: 4px; text-align: center; }
@@ -350,7 +359,7 @@
     let soundSparkBuffers = {}; 
 
     /* ==========================================
-       3. ตัวแปร Global & Chart Configuration
+       3. ตัวแปร Global, Online Status & Chart Configuration
        ========================================== */
     let alarmLimit = parseFloat(localStorage.getItem('vibAlarmLimit')) || 40.0;
     let latestValues = {}; 
@@ -380,6 +389,10 @@
     const alarmSound = new Audio('https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg');
     alarmSound.loop = true; 
     let isSoundEnabled = false;
+
+    // --- ตัวแปรสำหรับเช็คสถานะ Online/Offline ---
+    let lastUpdateTimes = {}; 
+    const OFFLINE_TIMEOUT = 60000; // 60 วินาที ถ้าไม่มีข้อมูลมาถือว่า Offline
 
     const sparkOptions = {
         chart: { 
@@ -577,14 +590,12 @@
         alertStatus[baseDev.id] = false;
         if(topDev) alertStatus[topDev.id] = false;
 
-        // สลับให้ Motor แสดงด้านบน
         let topHtml = topDev ? `
             <div class="vib-value-row">
                 <div class="v-label">Motor</div>
                 <div class="value" id="val-${topDev.id}">0.00 <span>mm/s</span></div>
             </div>` : '';
 
-        // Down จะแสดงด้านล่างของ Motor
         let baseHtml = `
             <div class="vib-value-row">
                 ${topDev ? '<div class="v-label">Down</div>' : '<div class="v-label">Vib</div>'}
@@ -596,7 +607,12 @@
         devContainer.innerHTML += `
           <div class="status-card" id="card-${baseDev.id}" onclick="openVibModal('${baseDev.id}')" style="display: ${isVisible ? 'flex' : 'none'};">
             <div class="card-info">
-              <h3>${baseDev.label}</h3>
+              <div class="card-header">
+                <h3>${baseDev.label}</h3>
+                <div class="device-status offline" id="status-badge-${baseDev.id}">
+                  <div class="status-dot"></div><span id="status-text-${baseDev.id}">Offline</span>
+                </div>
+              </div>
               <div class="vib-value-container">
                   ${topHtml}
                   ${baseHtml}
@@ -659,7 +675,12 @@
           gateContainer.innerHTML += `
               <div class="status-card" id="card-${gate.id}" onclick="openGateModal('${gate.id}', 'PS. ${gate.name}', '${gate.color}')">
                 <div class="card-info">
-                  <h3>PS. ${gate.name}</h3>
+                  <div class="card-header">
+                    <h3>PS. ${gate.name}</h3>
+                    <div class="device-status offline" id="status-badge-${gate.id}">
+                      <div class="status-dot"></div><span id="status-text-${gate.id}">Offline</span>
+                    </div>
+                  </div>
                   <div class="vib-value-container">
                       <div class="vib-value-row">
                           <div class="v-label" style="width: auto;">Press</div>
@@ -693,8 +714,43 @@
     }
 
     /* ==========================================
-       7. Live Data (Firebase & MQTT)
+       7. Live Data (Firebase & MQTT) & Online Status Checker
        ========================================== */
+    function updateDeviceStatus(id, isOnline) {
+      const badge = document.getElementById(`status-badge-${id}`);
+      const text = document.getElementById(`status-text-${id}`);
+      if (badge && text) {
+        if (isOnline) {
+          badge.classList.remove('offline');
+          badge.classList.add('online');
+          text.innerText = "Online";
+        } else {
+          badge.classList.remove('online');
+          badge.classList.add('offline');
+          text.innerText = "Offline";
+        }
+      }
+    }
+
+    // ตัวตรวจสอบสถานะ Online / Offline วนซ้ำทุก 5 วินาที
+    setInterval(() => {
+      const now = Date.now();
+      
+      // เช็คเซ็นเซอร์ Vibration
+      DEVICE_LIST.filter(d => !d.id.endsWith('TOP')).forEach(dev => {
+        if (!lastUpdateTimes[dev.id] || (now - lastUpdateTimes[dev.id] > OFFLINE_TIMEOUT)) {
+          updateDeviceStatus(dev.id, false);
+        }
+      });
+
+      // เช็คเซ็นเซอร์ Bag Filter
+      gatesConfig.forEach(gate => {
+        if (!lastUpdateTimes[gate.id] || (now - lastUpdateTimes[gate.id] > OFFLINE_TIMEOUT)) {
+          updateDeviceStatus(gate.id, false);
+        }
+      });
+    }, 5000);
+
     function listenLiveStatus() {
       DEVICE_LIST.forEach(dev => {
         const baseId = dev.id.endsWith('TOP') ? dev.id.replace('TOP', '') : dev.id;
@@ -740,6 +796,10 @@
                            (data.sound !== undefined && data.sound !== null) ? parseFloat(data.sound) :
                            (data.snd !== undefined && data.snd !== null) ? parseFloat(data.snd) :
                            (data.noise !== undefined && data.noise !== null) ? parseFloat(data.noise) : null;
+
+            // บันทึกเวลาที่ได้รับข้อมูลล่าสุดเพื่อเช็ค Online/Offline
+            lastUpdateTimes[baseId] = Date.now();
+            updateDeviceStatus(baseId, true);
 
             if (currentVal !== undefined && currentVal !== null) {
                 latestValues[dev.id] = currentVal;
@@ -814,6 +874,10 @@
                 const rawVal = data[`p${idx+1}`];
                 const val = (rawVal !== undefined && rawVal !== null) ? parseFloat(rawVal) : 0.0;
                 
+                // บันทึกเวลาที่ได้รับข้อมูลล่าสุดเพื่อเช็ค Online/Offline
+                lastUpdateTimes[gate.id] = Date.now();
+                updateDeviceStatus(gate.id, true);
+
                 const valEl = document.getElementById(`val-${gate.id}`);
                 if (valEl) valEl.innerHTML = val.toFixed(2) + " <span>Bar</span>";
 
@@ -914,12 +978,10 @@
       document.getElementById('chartModal').classList.add('show');
       isModalOpen = true;
 
-      // ลบอินสแตนซ์เดิมออก
       if(myChart) { myChart.destroy(); myChart = null; }
       if(myChartTop) { myChartTop.destroy(); myChartTop = null; }
       if(myChartSound) { myChartSound.destroy(); myChartSound = null; }
 
-      // 1. กราฟ Vibration Motor (ด้านบน)
       const chartTopEl = document.getElementById('vibChartTop');
       if (topInfo) {
         chartTopEl.style.display = 'block';
@@ -929,11 +991,9 @@
         chartTopEl.style.display = 'none';
       }
 
-      // 2. กราฟ Vibration Down
       myChart = new ApexCharts(document.getElementById('vibChart'), getDetailedChartOptions(`${baseInfo.label} ความสั่นสะเทือน ${topInfo ? '(Down)' : ''}`, baseInfo.color, 'mm/s'));
       myChart.render();
 
-      // 3. กราฟ Sound History (dB)
       const chartSoundEl = document.getElementById('soundChart');
       chartSoundEl.style.display = 'block';
       myChartSound = new ApexCharts(chartSoundEl, getDetailedChartOptions(`${baseInfo.label} ระดับเสียง (Sound History)`, '#f59e0b', 'dB'));
@@ -986,10 +1046,8 @@
       setActiveFilterButton(`btn-${hours}`);
 
       if (currentModalType === 'vib') {
-        // ดึงข้อมูลสำหรับ Base node (พร้อม Sound)
         fetchVibData(activeNodeBase, hours, myChart, true);
         
-        // ถ้ามี Motor node ให้ดึงแยก
         if (activeNodeTop && DEVICE_LIST.find(d => d.id === activeNodeTop)) {
           fetchVibData(activeNodeTop, hours, myChartTop, false);
         }
@@ -1021,7 +1079,6 @@
             values.push(val.ax !== undefined ? val.ax : 0);
             if (val.temp !== undefined) lastTemp = val.temp;
 
-            // ตรวจสอบชื่อฟิลด์ Sound ครบทุกรูปแบบ
             const sVal = (val.soundMax !== undefined && val.soundMax !== null) ? parseFloat(val.soundMax) :
                          (val.sound !== undefined && val.sound !== null) ? parseFloat(val.sound) :
                          (val.snd !== undefined && val.snd !== null) ? parseFloat(val.snd) :
@@ -1034,7 +1091,6 @@
             }
           });
 
-          // อัปเดตกราฟการสั่นสะเทือน
           if (chartInstance) {
             chartInstance.updateOptions({
               xaxis: { categories: labels },
@@ -1042,12 +1098,10 @@
             });
           }
 
-          // ถ้าเป็น Base Node ให้จัดการข้อมูลเสียง & อุณหภูมิ
           if (isBaseNode) {
             if (lastTemp !== null) document.getElementById('modal-temp').innerText = `${lastTemp.toFixed(1)} °C`;
             if (lastSound !== null) document.getElementById('modal-sound').innerText = `${lastSound.toFixed(1)} dB`;
 
-            // อัปเดตข้อมูลเข้ากราฟประวัติเสียง (Sound Chart)
             if (myChartSound) {
               myChartSound.updateOptions({
                 xaxis: { categories: labels },
