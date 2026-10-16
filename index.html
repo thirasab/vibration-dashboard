@@ -82,7 +82,6 @@
     .main-tab-btn.active { background: var(--primary); color: #ffffff; box-shadow: 0 4px 10px rgba(0, 176, 111, 0.2); }
     .main-tab-btn.bf-tab.active { background: var(--bf-primary); box-shadow: 0 4px 10px rgba(56, 189, 248, 0.2); }
 
-    /* แอนิเมชันเตือนบนปุ่ม Tab เมื่อมี Alarm ซ่อนอยู่ในหน้านั้น */
     @keyframes flashTabDanger {
       0%, 100% { background-color: rgba(239, 68, 68, 0.15); color: #ef4444; }
       50% { background-color: #ef4444; color: #ffffff; }
@@ -594,7 +593,6 @@
         yaxis: buildYAxisConfig(yUnit, [])
       };
 
-      // ย้าย Annotations มาไว้ระดับ Root ของ Chart Options เพื่อให้แสดงผลตั้งแต่จังหวะเปิด Modal ทันที
       if (yUnit === 'Bar') {
         chartOptions.annotations = {
           yaxis: [{
@@ -968,6 +966,7 @@
         });
     }
 
+    // โหลดข้อมูลประวัติแค่ครั้งเดียวตอนเปิดหน้าเว็บ (Lazy Cache) แล้วเก็บไว้ในตัวแปร bfHistory
     async function fetchBFHistory() {
         try {
             const res = await fetch("https://script.google.com/macros/s/AKfycbwkMTHj9lhFm79HaQTtLE4tC77O1ILsmazRb6s5tPdamXZct9hlC7sEwc9Xb3l4XydN/exec");
@@ -1100,7 +1099,7 @@
             }]
           },
           series: [{ name: 'Purge Pressure', data: curBuf.data }]
-        });
+        }, false, false);
       }
     }
 
@@ -1114,6 +1113,7 @@
       }
     }
 
+    // เรนเดอร์กราฟประวัติ Bag Filter โดยดึงจากแคช bfHistory ทันที ไม่โหลดซ้ำซ้อน
     function renderBFHistoryChart(hours) {
       if (!bfHistory || bfHistory.length === 0) {
         myChart.updateOptions({
