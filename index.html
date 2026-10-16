@@ -1097,16 +1097,7 @@
       }
     }
 
-    // ประมวลผลและลดจำนวนจุดแบบสตรีมมิ่งความเร็วสูง พร้อมฟอร์แมตเวลาแบบกระชับอัตโนมัติ
-    function renderBFHistoryChart(hours) {
-      if (!bfHistory || bfHistory.length === 0) {
-        myChart.updateOptions({
-          xaxis: { categories: [] },
-          series: [{ name: 'Purge Pressure', data: [] }],
-          noData: { text: 'กำลังโหลดข้อมูลประวัติจาก Google Sheets...' }
-        });
-        return;
-      }
+
 
 // ประมวลผลและลดจำนวนจุดแบบสตรีมมิ่งความเร็วสูงสำหรับข้อมูลทุก 5 นาที (รองรับคีย์เวลาทุกรูปแบบ)
     function renderBFHistoryChart(hours) {
