@@ -1108,19 +1108,22 @@
         return;
       }
 
-      // ปรับรูปแบบเวลาให้กระชับ: ถ้าดู 1h-12h แสดงเฉพาะ [ชั่วโมง:นาที], ถ้าดู 1d ขึ้นไป แสดง [วัน/เดือน ชั่วโมง:นาที]
-      const timeFormat = hours >= 24 ? 'DD/MM HH:mm' : 'HH:mm';
-      const validTimestamps = bfHistory.filter(r => r._epochMs !== null);
-      let filteredRows = [];
-
-      if (validTimestamps.length > 0) {
-        const latestSheetTime = validTimestamps[validTimestamps.length - 1]._epochMs;
-        const cutoffTime = latestSheetTime - (hours * 60 * 60 * 1000);
-        filteredRows = validTimestamps.filter(r => r._epochMs >= cutoffTime);
-      } else {
-        const expectedPoints = hours * 12; // บันทึกทุก 5 นาที (1 ชม. = 12 จุด)
-        filteredRows = bfHistory.slice(-expectedPoints);
+// ประมวลผลและลดจำนวนจุดแบบสตรีมมิ่งความเร็วสูงสำหรับข้อมูลทุก 5 นาที (รองรับคีย์เวลาทุกรูปแบบ)
+    function renderBFHistoryChart(hours) {
+      if (!bfHistory || bfHistory.length === 0) {
+        myChart.updateOptions({
+          xaxis: { categories: [] },
+          series: [{ name: 'Purge Pressure', data: [] }],
+          noData: { text: 'กำลังโหลดข้อมูลประวัติจาก Google Sheets...' }
+        });
+        return;
       }
+
+      const timeFormat = hours >= 24 ? 'DD/MM HH:mm' : 'HH:mm';
+      
+      // คำนวณจำนวนจุดย้อนหลังตามความถี่บันทึกทุก 5 นาที (1 ชม. = 12 จุด)
+      const expectedPoints = hours * 12;
+      const filteredRows = bfHistory.slice(-expectedPoints);
 
       const rawLabels = [];
       const rawValues = [];
@@ -1132,7 +1135,16 @@
         const rawP = parseFloat(r[activeGateKey]);
         if (isNaN(rawP)) continue;
 
-        const labelStr = r._epochMs ? dayjs(r._epochMs).format(timeFormat) : String(r.Timestamp || '');
+        // รองรับคีย์เวลาทุกรูปแบบ ('time', 'Timestamp', 'timestamp', 'Date')
+        let labelStr = r.time || r.Timestamp || r.timestamp || r.Date || '';
+        
+        // ถ้าเป็น timestamp แบบตัวเลขหรือวันที่ดิบ ให้แปลงด้วย dayjs
+        if (r._epochMs) {
+          labelStr = dayjs(r._epochMs).format(timeFormat);
+        } else if (labelStr && !isNaN(labelStr)) {
+          labelStr = dayjs(Number(labelStr)).format(timeFormat);
+        }
+
         rawLabels.push(labelStr);
         rawValues.push(rawP);
 
