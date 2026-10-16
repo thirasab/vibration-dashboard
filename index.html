@@ -598,7 +598,7 @@
     }
 
     /* ==========================================
-       4. Auto & Tab Switcher
+       4. Auto & Tab Switcher (แยกการ์ดตามกลุ่ม CM จริง)
        ========================================== */
     function toggleAutoMode() {
       isAutoMode = !isAutoMode;
@@ -629,49 +629,33 @@
     }
     function stopAutoTimer() { if (autoTimer) { clearInterval(autoTimer); autoTimer = null; } }
     function switchTab(group) { switchTabCore(group); if (isAutoMode) { autoRemaining = AUTO_MAX_TIME; updateAutoModeUI(); startAutoTimer(); } }
-function switchTabCore(group) {
+
+    function switchTabCore(group) {
       currentTabGroup = group;
-      
-      // อัปเดตสถานะปุ่มเมนู Tab (Active)
       document.querySelectorAll('.main-tab-btn').forEach(btn => {
         if(btn.dataset.group === group) btn.classList.add('active'); else btn.classList.remove('active');
       });
-
-      const devContainer = document.getElementById('devices-container');
-      const bfContainer = document.getElementById('bf-container');
-      const headerIcon = document.getElementById('header-icon');
-      const headerText = document.getElementById('header-text');
-      const alarmBtn = document.getElementById('alarm-btn');
-      const bfAlarmBtn = document.getElementById('bf-alarm-btn');
+      const devContainer = document.getElementById('devices-container'), bfContainer = document.getElementById('bf-container'), headerIcon = document.getElementById('header-icon'), headerText = document.getElementById('header-text'), alarmBtn = document.getElementById('alarm-btn'), bfAlarmBtn = document.getElementById('bf-alarm-btn');
 
       if (group === 'gate-bf') {
-        // --- เมนู Bag Filter: แสดงเฉพาะการ์ดลม Purge และซ่อนการ์ดความสั่นทั้งหมด ---
-        devContainer.style.display = 'none'; 
-        bfContainer.style.display = 'flex';
-        
-        headerIcon.className = "fa-solid fa-wind"; 
-        headerIcon.style.color = "var(--bf-primary)";
+        devContainer.style.display = 'none'; bfContainer.style.display = 'flex';
+        headerIcon.className = "fa-solid fa-wind"; headerIcon.style.color = "var(--bf-primary)";
         headerText.innerText = "CM 10-11 Bag Filter"; 
-        
         if(alarmBtn) alarmBtn.style.display = 'none'; 
         if(bfAlarmBtn) bfAlarmBtn.style.display = 'flex';
       } else {
-        // --- เมนูความสั่นสะเทือน: แสดงเฉพาะการ์ดกลุ่มที่เลือก และซ่อนการ์ด Bag Filter ---
-        devContainer.style.display = 'grid'; 
-        bfContainer.style.display = 'none';
-        
-        headerIcon.className = "fa-solid fa-wave-square"; 
-        headerIcon.style.color = "var(--primary)";
+        devContainer.style.display = 'grid'; bfContainer.style.display = 'none';
+        headerIcon.className = "fa-solid fa-wave-square"; headerIcon.style.color = "var(--primary)";
         headerText.innerText = "มอนิเตอร์ความสั่นสะเทือน & เสียง"; 
-        
         if(alarmBtn) alarmBtn.style.display = 'flex';
         if(bfAlarmBtn) bfAlarmBtn.style.display = 'none';
 
-        // วนลูปเช็คกลุ่มการ์ด Vibration ให้แสดงเฉพาะการ์ดที่ตรงกับแท็บที่เลือกเท่านั้น
-        DEVICE_LIST.filter(d => !d.id.endsWith('TOP')).forEach(dev => {
-          const card = document.getElementById(`card-${dev.id}`);
-          if(card) {
-            card.style.display = (dev.group === group) ? 'flex' : 'none';
+        // วนลูปแสดงเฉพาะการ์ดที่ตรงกับกลุ่ม (group) ของแท็บนั้นๆ จริงๆ
+        const bases = DEVICE_LIST.filter(d => !d.id.endsWith('TOP'));
+        bases.forEach(baseDev => {
+          const card = document.getElementById(`card-${baseDev.id}`);
+          if (card) {
+            card.style.display = (baseDev.group === group) ? 'flex' : 'none';
           }
         });
       }
@@ -723,7 +707,7 @@ function switchTabCore(group) {
             </div>`;
 
         devContainer.innerHTML += `
-          <div class="status-card" id="card-${baseDev.id}" onclick="openVibModal('${baseDev.id}')" style="display: flex;">
+          <div class="status-card" id="card-${baseDev.id}" onclick="openVibModal('${baseDev.id}')" style="display: none;">
             <div class="card-info">
               <h3>${baseDev.label}</h3>
               <div class="vib-value-container">
@@ -984,7 +968,7 @@ function switchTabCore(group) {
             if (Array.isArray(rawJson)) {
                 bfHistory = rawJson.map(r => ({
                     ...r,
-                    _epochMs: parseSheetTimestamp(r.Timestamp || r.timestamp || r.Date)
+                    _epochMs: parseSheetTimestamp(r.Timestamp || r.timestamp || r.Date || r.time)
                 }));
 
                 if (bfHistory.length > 0) {
@@ -1093,6 +1077,7 @@ function switchTabCore(group) {
         minEl.style.color = minVal < bfAlarmLimit ? '#ef4444' : 'var(--text-main)';
 
         myChart.updateOptions({
+          title: { text: `${activeGateTitle} แรงดันลม Purge (Live MQTT)` },
           xaxis: { categories: curBuf.labels },
           yaxis: buildYAxisConfig('Bar', curBuf.data),
           annotations: {
@@ -1122,9 +1107,6 @@ function switchTabCore(group) {
       }
     }
 
-
-
-// ประมวลผลและลดจำนวนจุดแบบสตรีมมิ่งความเร็วสูงสำหรับข้อมูลทุก 5 นาที (รองรับคีย์เวลาทุกรูปแบบ)
     function renderBFHistoryChart(hours) {
       if (!bfHistory || bfHistory.length === 0) {
         myChart.updateOptions({
@@ -1136,10 +1118,17 @@ function switchTabCore(group) {
       }
 
       const timeFormat = hours >= 24 ? 'DD/MM HH:mm' : 'HH:mm';
-      
-      // คำนวณจำนวนจุดย้อนหลังตามความถี่บันทึกทุก 5 นาที (1 ชม. = 12 จุด)
-      const expectedPoints = hours * 12;
-      const filteredRows = bfHistory.slice(-expectedPoints);
+      const validTimestamps = bfHistory.filter(r => r._epochMs !== null);
+      let filteredRows = [];
+
+      if (validTimestamps.length > 0) {
+        const latestSheetTime = validTimestamps[validTimestamps.length - 1]._epochMs;
+        const cutoffTime = latestSheetTime - (hours * 60 * 60 * 1000);
+        filteredRows = validTimestamps.filter(r => r._epochMs >= cutoffTime);
+      } else {
+        const expectedPoints = hours * 12;
+        filteredRows = bfHistory.slice(-expectedPoints);
+      }
 
       const rawLabels = [];
       const rawValues = [];
@@ -1151,10 +1140,7 @@ function switchTabCore(group) {
         const rawP = parseFloat(r[activeGateKey]);
         if (isNaN(rawP)) continue;
 
-        // รองรับคีย์เวลาทุกรูปแบบ ('time', 'Timestamp', 'timestamp', 'Date')
         let labelStr = r.time || r.Timestamp || r.timestamp || r.Date || '';
-        
-        // ถ้าเป็น timestamp แบบตัวเลขหรือวันที่ดิบ ให้แปลงด้วย dayjs
         if (r._epochMs) {
           labelStr = dayjs(r._epochMs).format(timeFormat);
         } else if (labelStr && !isNaN(labelStr)) {
@@ -1219,7 +1205,7 @@ function switchTabCore(group) {
     function fetchVibData(nodeId, hours, chartInstance, isBaseNode = false) {
       const referenceTime = lastUpdateTimes[nodeId] || Date.now();
       const startTime = referenceTime - (hours * 60 * 60 * 1000);
-      const timeFormat = hours >= 24 ? 'DD/MM HH:mm' : 'HH:mm';
+      const timeFormat = hours >= 24 ? 'DD/MM HH:mm' : 'HH:mm:ss';
 
       db.ref(`Vibration_Logs/${nodeId}`).orderByChild('gatewayEpoch').startAt(startTime / 1000).once('value', snap => {
           const vibRecords = [];
