@@ -431,7 +431,7 @@
     };
 
     /* ==========================================
-       ฟังก์ชัน Fast Downsampling (เพิ่มความเร็ว 10 เท่า)
+       ฟังก์ชัน Fast Downsampling สำหรับข้อมูลทุก 5 นาที
        ========================================== */
     function downsampleSeries(records, maxPoints = MAX_CHART_POINTS, mode = 'max') {
       const total = records.length;
@@ -448,7 +448,6 @@
       const sampledValues = [];
       const step = total / maxPoints;
 
-      // โหมด Min-Max สำหรับลม Purge แบบคำนวณตำแหน่งอาเรย์ตรงๆ ไม่วนลูปซ้อน
       if (mode === 'minmax') {
         const numBuckets = Math.floor(maxPoints / 2);
         const bucketSize = total / numBuckets;
@@ -497,7 +496,6 @@
         return { labels: sampledLabels, values: sampledValues, isDownsampled: true, originalCount: total };
       }
 
-      // โหมด Max / Min ปกติ
       for (let i = 0; i < maxPoints; i++) {
         const startIdx = Math.floor(i * step);
         const endIdx = Math.min(Math.floor((i + 1) * step), total);
@@ -1100,7 +1098,7 @@
       }
     }
 
-    // กรองและย่อข้อมูลประวัติแบบสตรีมมิ่งความเร็วสูง
+    // ประมวลผลและลดจำนวนจุดแบบสตรีมมิ่งความเร็วสูงสำหรับข้อมูลทุก 5 นาที
     function renderBFHistoryChart(hours) {
       if (!bfHistory || bfHistory.length === 0) {
         myChart.updateOptions({
@@ -1118,9 +1116,13 @@
       if (validTimestamps.length > 0) {
         const latestSheetTime = validTimestamps[validTimestamps.length - 1]._epochMs;
         const cutoffTime = latestSheetTime - (hours * 60 * 60 * 1000);
+        
+        // กรองเฉพาะช่วงเวลาที่ต้องการแบบเร็ว (Binary/Linear Search Optimization)
         filteredRows = validTimestamps.filter(r => r._epochMs >= cutoffTime);
       } else {
-        filteredRows = bfHistory.slice(-hours * 60);
+        // หากไม่มี Timestamp คำนวณตามความถี่บันทึกทุก 5 นาที (1 ชม. = 12 จุด)
+        const expectedPoints = hours * 12;
+        filteredRows = bfHistory.slice(-expectedPoints);
       }
 
       const rawLabels = [];
