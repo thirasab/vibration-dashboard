@@ -17,9 +17,9 @@
   <!-- MQTT (Bag Filter) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
 
-  <!-- Charts & Time -->
-  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+  <!-- Charts & Time (เปลี่ยนเป็น cdnjs และล็อกเวอร์ชันเสถียร ป้องกันปัญหาถูกบล็อก/อัปเดตพัง) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.44.0/apexcharts.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/dayjs.min.js"></script>
 
   <style>
     /* RESET & THEME CONFIGURATION */
@@ -92,7 +92,6 @@
     .vib-value-container { display: flex; flex-direction: column; gap: 5px; margin-bottom: 8px; }
     .vib-value-row { display: flex; align-items: center; gap: 8px; }
     
-    /* อัปเดต Label และไฟบอกสถานะ (Status Dot) */
     .vib-value-row .v-label { 
       display: flex; align-items: center; justify-content: flex-start; gap: 6px; 
       font-size: 11px; font-weight: 700; color: var(--text-sub); 
@@ -103,19 +102,18 @@
     
     .node-status-dot {
       display: inline-block; width: 8px; height: 8px; border-radius: 50%;
-      background-color: var(--status-error); /* Default Offline (Red) */
+      background-color: var(--status-error);
       box-shadow: 0 0 4px rgba(239, 68, 68, 0.6);
       flex-shrink: 0; transition: background-color 0.3s;
     }
     .node-status-dot.online {
-      background-color: var(--status-ok); /* Online (Green) */
+      background-color: var(--status-ok);
       box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
     }
 
     .vib-value-row .value { font-family: 'Inter', sans-serif; font-size: 22px; font-weight: 700; line-height: 1; color: var(--text-main); transition: opacity 0.3s; }
     .vib-value-row .value span { font-family: 'Prompt', sans-serif; font-size: 11px; font-weight: 400; color: var(--text-sub); margin-left: 2px; }
     
-    /* ตัวอักษรจะจางลงเมื่อเซ็นเซอร์ Offline เกิน 10 นาที */
     .value.offline-text { opacity: 0.3; }
 
     .card-info .time { font-family: 'Inter', sans-serif; font-size: 11px; color: var(--text-sub); display: flex; align-items: center; gap: 4px; }
@@ -139,8 +137,7 @@
     /* Modal & Fullscreen Styles */
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); z-index: 1000; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.2s ease; }
     .modal-overlay.show { display: flex; opacity: 1; }
-    .modal-content { background: var(--bg-color); width: 100%; max-width: 980px; max-height: 92vh; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.4); border: var(--border); transform: scale(0.96); transition: all 0.25s cubic-bezier(0.1, 0.9, 0.2, 1); }
-    .modal-overlay.show .modal-content { transform: scale(1); }
+    .modal-content { background: var(--bg-color); width: 100%; max-width: 980px; max-height: 92vh; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.4); border: var(--border); }
 
     .modal-content:fullscreen, .modal-content:-webkit-full-screen {
       width: 100vw !important; height: 100vh !important; max-width: 100vw !important; max-height: 100vh !important; border-radius: 0 !important; padding: 20px !important;
@@ -286,11 +283,8 @@
 
         <div class="chart-container">
           <div class="chart-wrapper">
-            <!-- 1. กราฟ Vibration Motor (สลับขึ้นด้านบน) -->
             <div id="vibChartTop" class="chart-instance" style="display: none;"></div>
-            <!-- 2. กราฟ Vibration Down -->
             <div id="vibChart" class="chart-instance"></div>
-            <!-- 3. กราฟ Sound History (dB) -->
             <div id="soundChart" class="chart-instance" style="display: none;"></div>
           </div>
         </div>
@@ -353,8 +347,8 @@
     /* ==========================================
        3. ตัวแปร Global & Timestamps
        ========================================== */
-    const OFFLINE_TIMEOUT = 10 * 60 * 1000; // 10 นาที
-    let lastUpdateTimes = {}; // เก็บเวลาที่ข้อมูลเข้าล่าสุด { 'NOED...': timestamp, 'sound-NOED...': timestamp }
+    const OFFLINE_TIMEOUT = 10 * 60 * 1000;
+    let lastUpdateTimes = {};
 
     let alarmLimit = parseFloat(localStorage.getItem('vibAlarmLimit')) || 40.0;
     let latestValues = {}; 
@@ -398,9 +392,17 @@
         tooltip: { fixed: { enabled: false }, x: { show: false }, y: { title: { formatter: () => '' } }, marker: { show: false } }
     };
 
+    // แก้ไข: เพิ่ม series: [] และ noData เริ่มต้น ป้องกัน ApexCharts แครชในบางเบราว์เซอร์
     function getDetailedChartOptions(title, color, yUnit = 'mm/s') {
       const isDark = document.body.classList.contains('dark-mode');
       return {
+        series: [{ name: yUnit, data: [] }],
+        noData: {
+          text: 'กำลังโหลดข้อมูล...',
+          align: 'center',
+          verticalAlign: 'middle',
+          style: { color: isDark ? '#8c96a5' : '#6b7280', fontSize: '14px', fontFamily: 'Prompt' }
+        },
         chart: {
           type: 'line', height: 280, zoom: { enabled: true, type: 'x', autoScaleYaxis: true }, pan: { enabled: true, mode: 'x' },
           toolbar: {
@@ -412,9 +414,9 @@
         colors: [color], stroke: { curve: 'smooth', width: 2.5 }, markers: { size: 2, hover: { size: 6 } },
         grid: { borderColor: isDark ? '#222833' : '#e5e7eb', strokeDashArray: 4, xaxis: { lines: { show: true } }, yaxis: { lines: { show: true } } },
         title: { text: title, align: 'left', style: { fontSize: '13px', fontFamily: 'Prompt', color: isDark ? '#f9fafb' : '#111827' } },
-        tooltip: { enabled: true, shared: true, intersect: false, x: { format: 'HH:mm:ss' }, y: { formatter: (val) => `${val !== undefined && val !== null ? val.toFixed(2) : '0.00'} ${yUnit}` } },
-        xaxis: { type: 'category', labels: { rotate: -30, style: { colors: isDark ? '#8c96a5' : '#6b7280', fontSize: '11px', fontFamily: 'Inter' } } },
-        yaxis: { labels: { formatter: (val) => val !== undefined && val !== null ? val.toFixed(2) : '0.00', style: { colors: isDark ? '#8c96a5' : '#6b7280', fontFamily: 'Inter' } } }
+        tooltip: { enabled: true, shared: true, intersect: false, x: { format: 'HH:mm:ss' }, y: { formatter: (val) => `${val !== undefined && val !== null ? Number(val).toFixed(2) : '0.00'} ${yUnit}` } },
+        xaxis: { type: 'category', categories: [], labels: { rotate: -30, style: { colors: isDark ? '#8c96a5' : '#6b7280', fontSize: '11px', fontFamily: 'Inter' } } },
+        yaxis: { labels: { formatter: (val) => val !== undefined && val !== null ? Number(val).toFixed(2) : '0.00', style: { colors: isDark ? '#8c96a5' : '#6b7280', fontFamily: 'Inter' } } }
       };
     }
 
@@ -471,7 +473,7 @@
           if(card) card.style.display = (dev.group === group) ? 'flex' : 'none';
         });
       }
-      setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+      setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
     }
 
     function toggleFullscreen() {
@@ -518,7 +520,7 @@
             </div>`;
 
         devContainer.innerHTML += `
-          <div class="status-card" id="card-${baseDev.id}" onclick="openVibModal('${baseDev.id}')" style="display: none;">
+          <div class="status-card" id="card-${baseDev.id}" onclick="openVibModal('${baseDev.id}')" style="display: flex;">
             <div class="card-info">
               <h3>${baseDev.label}</h3>
               <div class="vib-value-container">
@@ -535,20 +537,6 @@
             </div>
           </div>
         `;
-      });
-
-      // Render Sparklines
-      bases.forEach(baseDev => {
-        const topDev = DEVICE_LIST.find(d => d.id === baseDev.id + 'TOP');
-        if (topDev) {
-          const sparkTopEl = document.querySelector(`#spark-${topDev.id}`);
-          if (sparkTopEl) { sparkCharts[topDev.id] = new ApexCharts(sparkTopEl, { ...sparkOptions, colors: [topDev.color], series: [{ data: [0, 0] }] }); sparkCharts[topDev.id].render(); }
-        }
-        const sparkEl = document.querySelector(`#spark-${baseDev.id}`);
-        if (sparkEl) { sparkCharts[baseDev.id] = new ApexCharts(sparkEl, { ...sparkOptions, colors: [baseDev.color], series: [{ data: [0, 0] }] }); sparkCharts[baseDev.id].render(); }
-        
-        const sparkSoundEl = document.querySelector(`#spark-sound-${baseDev.id}`);
-        if (sparkSoundEl) { sparkCharts['sound-' + baseDev.id] = new ApexCharts(sparkSoundEl, { ...sparkOptions, colors: ['#f59e0b'], series: [{ data: [0, 0] }] }); sparkCharts['sound-' + baseDev.id].render(); }
       });
 
       const gateContainer = document.getElementById('gates-container');
@@ -573,6 +561,20 @@
           `;
       });
 
+      // Render Sparklines ตอนที่การ์ดแสดงผลอยู่เพื่อไม่ให้ขนาดเป็น 0px
+      bases.forEach(baseDev => {
+        const topDev = DEVICE_LIST.find(d => d.id === baseDev.id + 'TOP');
+        if (topDev) {
+          const sparkTopEl = document.querySelector(`#spark-${topDev.id}`);
+          if (sparkTopEl) { sparkCharts[topDev.id] = new ApexCharts(sparkTopEl, { ...sparkOptions, colors: [topDev.color], series: [{ data: [0, 0] }] }); sparkCharts[topDev.id].render(); }
+        }
+        const sparkEl = document.querySelector(`#spark-${baseDev.id}`);
+        if (sparkEl) { sparkCharts[baseDev.id] = new ApexCharts(sparkEl, { ...sparkOptions, colors: [baseDev.color], series: [{ data: [0, 0] }] }); sparkCharts[baseDev.id].render(); }
+        
+        const sparkSoundEl = document.querySelector(`#spark-sound-${baseDev.id}`);
+        if (sparkSoundEl) { sparkCharts['sound-' + baseDev.id] = new ApexCharts(sparkSoundEl, { ...sparkOptions, colors: ['#f59e0b'], series: [{ data: [0, 0] }] }); sparkCharts['sound-' + baseDev.id].render(); }
+      });
+
       gatesConfig.forEach(gate => {
         const sparkEl = document.querySelector(`#spark-${gate.id}`);
         if (sparkEl) { sparkCharts[gate.id] = new ApexCharts(sparkEl, { ...sparkOptions, colors: [gate.color], series: [{ data: [0, 0] }] }); sparkCharts[gate.id].render(); }
@@ -586,8 +588,6 @@
        ========================================== */
     function checkOfflineStatus() {
         const now = Date.now();
-        
-        // ตรวจสอบ Vibration & Sound (Firebase)
         DEVICE_LIST.forEach(dev => {
             const baseId = dev.id.endsWith('TOP') ? dev.id.replace('TOP', '') : dev.id;
             updateDotStatus(dev.id, `dot-${dev.id}`, `val-${dev.id}`, now);
@@ -595,8 +595,6 @@
                 updateDotStatus(`sound-${baseId}`, `dot-sound-${baseId}`, `val-sound-${baseId}`, now);
             }
         });
-
-        // ตรวจสอบ Bag filter (MQTT)
         gatesConfig.forEach(gate => {
             updateDotStatus(gate.id, `dot-${gate.id}`, `val-${gate.id}`, now);
         });
@@ -606,7 +604,8 @@
         const dot = document.getElementById(dotId);
         const valEl = document.getElementById(valId);
         const lastTime = lastUpdateTimes[idKey];
-        const isOnline = lastTime && ((now - lastTime) <= OFFLINE_TIMEOUT);
+        // ใช้ Math.abs เผื่อนาฬิกาคอมบางเครื่องเดินช้าหรือเร็วกว่า ESP32 เล็กน้อย
+        const isOnline = lastTime && (Math.abs(now - lastTime) <= OFFLINE_TIMEOUT);
 
         if (dot) {
             if (isOnline) { dot.classList.add('online'); dot.title = "Online"; } 
@@ -644,14 +643,13 @@
         db.ref(`Vibration_Logs/${dev.id}`).limitToLast(1).on('value', snap => {
           snap.forEach(child => {
             let data = child.val();
-            let currentVal = data.ax;
+            let currentVal = data.ax !== undefined && data.ax !== null ? parseFloat(data.ax) : null;
             let soundVal = (data.soundMax !== undefined && data.soundMax !== null) ? parseFloat(data.soundMax) : (data.sound !== undefined && data.sound !== null) ? parseFloat(data.sound) : (data.snd !== undefined && data.snd !== null) ? parseFloat(data.snd) : (data.noise !== undefined && data.noise !== null) ? parseFloat(data.noise) : null;
             
-            // อัปเดตเวลาล่าสุด (แปลงจาก gatewayEpoch วินาที เป็นมิลลิวินาที หรือถ้าไม่มีให้ใช้เวลาปัจจุบัน)
             const epochMs = data.gatewayEpoch ? data.gatewayEpoch * 1000 : Date.now();
 
-            if (currentVal !== undefined && currentVal !== null) {
-                lastUpdateTimes[dev.id] = epochMs; // บันทึกเวลา
+            if (currentVal !== null && !isNaN(currentVal)) {
+                lastUpdateTimes[dev.id] = epochMs;
                 latestValues[dev.id] = currentVal;
                 
                 const valEl = document.getElementById(`val-${dev.id}`);
@@ -669,8 +667,8 @@
                 if (sparkCharts[dev.id]) sparkCharts[dev.id].updateSeries([{ data: vibSparkBuffers[dev.id] }]);
             }
 
-            if (soundVal !== null && !dev.id.endsWith('TOP')) {
-                lastUpdateTimes['sound-' + baseId] = epochMs; // บันทึกเวลาของเสียง
+            if (soundVal !== null && !isNaN(soundVal) && !dev.id.endsWith('TOP')) {
+                lastUpdateTimes['sound-' + baseId] = epochMs;
                 const soundEl = document.getElementById(`val-sound-${baseId}`);
                 if (soundEl) soundEl.innerHTML = soundVal.toFixed(1) + " <span>dB</span>";
 
@@ -681,7 +679,7 @@
                 if (isModalOpen && activeNodeBase === baseId) document.getElementById('modal-sound').innerText = `${soundVal.toFixed(1)} dB`;
             }
 
-            checkOfflineStatus(); // เรียกตรวจสถานะทันทีเมื่อมีข้อมูลใหม่
+            checkOfflineStatus();
           });
         });
       });
@@ -704,7 +702,7 @@
             gatesConfig.forEach((gate, idx) => {
                 const rawVal = data[`p${idx+1}`];
                 if (rawVal !== undefined && rawVal !== null) {
-                    lastUpdateTimes[gate.id] = exactNow; // บันทึกเวลา
+                    lastUpdateTimes[gate.id] = exactNow;
                 }
                 const val = (rawVal !== undefined && rawVal !== null) ? parseFloat(rawVal) : 0.0;
                 
@@ -729,7 +727,7 @@
                 const curBuf = bfLiveBuffers[activeGateKey];
                 if (curBuf && myChart) myChart.updateOptions({ xaxis: { categories: curBuf.labels }, series: [{ name: 'Pressure', data: curBuf.data }] }, false, false);
             }
-            checkOfflineStatus(); // ตรวจสถานะเมื่อมีข้อมูล MQTT เข้า
+            checkOfflineStatus();
         } catch(e) { console.error("MQTT parse error", e); }
     };
 
@@ -755,7 +753,7 @@
     }
 
     /* ==========================================
-       8. Modal & Multi-Chart Functions
+       8. Modal & Multi-Chart Functions (แก้บั๊กกราฟไม่ขึ้น)
        ========================================== */
     function openVibModal(baseId) {
       currentModalType = 'vib'; activeNodeBase = baseId; activeNodeTop = baseId + 'TOP'; document.body.setAttribute('data-modal', 'vib');
@@ -766,15 +764,31 @@
       document.getElementById('btn-live').style.display = 'none';
       document.getElementById('chartModal').classList.add('show'); isModalOpen = true;
 
-      if(myChart) { myChart.destroy(); myChart = null; } if(myChartTop) { myChartTop.destroy(); myChartTop = null; } if(myChartSound) { myChartSound.destroy(); myChartSound = null; }
+      if(myChart) { myChart.destroy(); myChart = null; }
+      if(myChartTop) { myChartTop.destroy(); myChartTop = null; }
+      if(myChartSound) { myChartSound.destroy(); myChartSound = null; }
 
       const chartTopEl = document.getElementById('vibChartTop');
-      if (topInfo) { chartTopEl.style.display = 'block'; myChartTop = new ApexCharts(chartTopEl, getDetailedChartOptions(`${topInfo.label} ความสั่นสะเทือน (Motor)`, topInfo.color, 'mm/s')); myChartTop.render(); } else { chartTopEl.style.display = 'none'; }
-      myChart = new ApexCharts(document.getElementById('vibChart'), getDetailedChartOptions(`${baseInfo.label} ความสั่นสะเทือน ${topInfo ? '(Down)' : ''}`, baseInfo.color, 'mm/s')); myChart.render();
-      
-      const chartSoundEl = document.getElementById('soundChart'); chartSoundEl.style.display = 'block';
-      myChartSound = new ApexCharts(chartSoundEl, getDetailedChartOptions(`${baseInfo.label} ระดับเสียง (Sound History)`, '#f59e0b', 'dB')); myChartSound.render();
-      loadDataByDuration(currentDurationHours);
+      const chartSoundEl = document.getElementById('soundChart');
+      chartTopEl.style.display = topInfo ? 'block' : 'none';
+      chartSoundEl.style.display = 'block';
+
+      // หน่วงเวลา 100ms ให้ Modal กางออกจนมีความกว้างก่อนสั่งวาดกราฟ
+      setTimeout(async () => {
+        const renderPromises = [];
+        if (topInfo) {
+          myChartTop = new ApexCharts(chartTopEl, getDetailedChartOptions(`${topInfo.label} ความสั่นสะเทือน (Motor)`, topInfo.color, 'mm/s'));
+          renderPromises.push(myChartTop.render());
+        }
+        myChart = new ApexCharts(document.getElementById('vibChart'), getDetailedChartOptions(`${baseInfo.label} ความสั่นสะเทือน ${topInfo ? '(Down)' : ''}`, baseInfo.color, 'mm/s'));
+        renderPromises.push(myChart.render());
+
+        myChartSound = new ApexCharts(chartSoundEl, getDetailedChartOptions(`${baseInfo.label} ระดับเสียง (Sound History)`, '#f59e0b', 'dB'));
+        renderPromises.push(myChartSound.render());
+
+        await Promise.all(renderPromises);
+        loadDataByDuration(currentDurationHours);
+      }, 100);
     }
 
     function openGateModal(gateId, title, color) {
@@ -783,14 +797,25 @@
       document.getElementById('btn-live').style.display = 'inline-block'; document.getElementById('vibChartTop').style.display = 'none'; document.getElementById('soundChart').style.display = 'none';
       document.getElementById('chartModal').classList.add('show'); isModalOpen = true;
 
-      if(myChart) { myChart.destroy(); myChart = null; } if(myChartTop) { myChartTop.destroy(); myChartTop = null; } if(myChartSound) { myChartSound.destroy(); myChartSound = null; }
-      myChart = new ApexCharts(document.getElementById('vibChart'), getDetailedChartOptions(title, color, 'Bar')); myChart.render();
-      switchToLiveMode();
+      if(myChart) { myChart.destroy(); myChart = null; }
+      if(myChartTop) { myChartTop.destroy(); myChartTop = null; }
+      if(myChartSound) { myChartSound.destroy(); myChartSound = null; }
+
+      setTimeout(async () => {
+        myChart = new ApexCharts(document.getElementById('vibChart'), getDetailedChartOptions(title, color, 'Bar'));
+        await myChart.render();
+        // ถ้ายังไม่มีข้อมูล Live ใน Buffer แต่มี History ให้โชว์ History ล่าสุดก่อนไม่ให้กราฟโล่ง
+        if (bfLiveBuffers[activeGateKey] && bfLiveBuffers[activeGateKey].data.length > 0) {
+          switchToLiveMode();
+        } else {
+          loadDataByDuration(1);
+        }
+      }, 100);
     }
 
     function switchToLiveMode() {
       isLiveMode = true; setActiveFilterButton('btn-live');
-      if (activeGateKey && bfLiveBuffers[activeGateKey]) {
+      if (activeGateKey && bfLiveBuffers[activeGateKey] && myChart) {
         const curBuf = bfLiveBuffers[activeGateKey];
         myChart.updateOptions({ xaxis: { categories: curBuf.labels }, series: [{ name: 'Pressure', data: curBuf.data }] });
       }
@@ -801,27 +826,48 @@
       if (currentModalType === 'vib') {
         fetchVibData(activeNodeBase, hours, myChart, true);
         if (activeNodeTop && DEVICE_LIST.find(d => d.id === activeNodeTop)) fetchVibData(activeNodeTop, hours, myChartTop, false);
-      } else if (currentModalType === 'bf') {
-        const labels = bfHistory.map(r => dayjs(r.Timestamp).format('DD/MM HH:mm')).slice(-hours * 10), data = bfHistory.map(r => parseFloat(r[activeGateKey]) || 0).slice(-hours * 10);
+      } else if (currentModalType === 'bf' && myChart) {
+        const labels = bfHistory.map(r => dayjs(r.Timestamp).format('DD/MM HH:mm')).slice(-hours * 10);
+        const data = bfHistory.map(r => parseFloat(r[activeGateKey]) || 0).slice(-hours * 10);
         myChart.updateOptions({ xaxis: { categories: labels }, series: [{ name: 'Pressure', data: data }] });
       }
     }
 
+    // แก้ไข: ยึดเวลาจากข้อมูลจริงของเซ็นเซอร์ (lastUpdateTimes) แทน Date.now() ป้องกันปัญหาเวลาคอมพิวเตอร์เพี้ยน
     function fetchVibData(nodeId, hours, chartInstance, isBaseNode = false) {
-      const startTime = Date.now() - (hours * 60 * 60 * 1000);
+      const referenceTime = lastUpdateTimes[nodeId] || Date.now();
+      const startTime = referenceTime - (hours * 60 * 60 * 1000);
+
       db.ref(`Vibration_Logs/${nodeId}`).orderByChild('gatewayEpoch').startAt(startTime / 1000).once('value', snap => {
           const labels = [], values = [], soundValues = []; let lastTemp = null, lastSound = null;
           snap.forEach(child => {
-            const val = child.val(); labels.push(dayjs(val.gatewayEpoch * 1000).format('HH:mm:ss')); values.push(val.ax !== undefined ? val.ax : 0);
-            if (val.temp !== undefined) lastTemp = val.temp;
+            const val = child.val();
+            if (!val) return;
+            const timeLabel = val.gatewayEpoch ? dayjs(val.gatewayEpoch * 1000).format('HH:mm:ss') : '';
+            labels.push(timeLabel);
+            values.push(val.ax !== undefined && val.ax !== null ? parseFloat(val.ax) : 0);
+            if (val.temp !== undefined && val.temp !== null) lastTemp = parseFloat(val.temp);
             const sVal = (val.soundMax !== undefined && val.soundMax !== null) ? parseFloat(val.soundMax) : (val.sound !== undefined && val.sound !== null) ? parseFloat(val.sound) : (val.snd !== undefined && val.snd !== null) ? parseFloat(val.snd) : (val.noise !== undefined && val.noise !== null) ? parseFloat(val.noise) : null;
-            if (sVal !== null) { soundValues.push(sVal); lastSound = sVal; } else { soundValues.push(null); }
+            if (sVal !== null && !isNaN(sVal)) { soundValues.push(sVal); lastSound = sVal; } else { soundValues.push(null); }
           });
-          if (chartInstance) chartInstance.updateOptions({ xaxis: { categories: labels }, series: [{ name: 'Vibration', data: values }] });
+
+          if (chartInstance) {
+            chartInstance.updateOptions({
+              xaxis: { categories: labels },
+              series: [{ name: 'Vibration', data: values }],
+              noData: { text: values.length === 0 ? 'ไม่พบข้อมูลในช่วงเวลานี้' : 'กำลังโหลดข้อมูล...' }
+            });
+          }
           if (isBaseNode) {
-            if (lastTemp !== null) document.getElementById('modal-temp').innerText = `${lastTemp.toFixed(1)} °C`;
-            if (lastSound !== null) document.getElementById('modal-sound').innerText = `${lastSound.toFixed(1)} dB`;
-            if (myChartSound) myChartSound.updateOptions({ xaxis: { categories: labels }, series: [{ name: 'Sound Max', data: soundValues }] });
+            if (lastTemp !== null && !isNaN(lastTemp)) document.getElementById('modal-temp').innerText = `${lastTemp.toFixed(1)} °C`;
+            if (lastSound !== null && !isNaN(lastSound)) document.getElementById('modal-sound').innerText = `${lastSound.toFixed(1)} dB`;
+            if (myChartSound) {
+              myChartSound.updateOptions({
+                xaxis: { categories: labels },
+                series: [{ name: 'Sound Max', data: soundValues }],
+                noData: { text: soundValues.length === 0 ? 'ไม่พบข้อมูลเสียงในช่วงเวลานี้' : 'กำลังโหลดข้อมูล...' }
+              });
+            }
           }
         });
     }
@@ -848,8 +894,6 @@
       connectMQTT();
       fetchBFHistory();
       setInterval(fetchBFHistory, 60000);
-      
-      // ให้ระบบทำการตรวจสอบ Offline ทุกๆ 10 วินาที
       setInterval(checkOfflineStatus, 10000);
     };
   </script>
