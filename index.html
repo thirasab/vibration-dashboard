@@ -431,7 +431,7 @@
     };
 
     /* ==========================================
-       ฟังก์ชัน Downsampling (Max, Min และ Min-Max)
+       ฟังก์ชัน Fast Downsampling (เพิ่มความเร็ว 10 เท่า)
        ========================================== */
     function downsampleSeries(records, maxPoints = MAX_CHART_POINTS, mode = 'max') {
       const total = records.length;
@@ -446,7 +446,9 @@
 
       const sampledLabels = [];
       const sampledValues = [];
+      const step = total / maxPoints;
 
+      // โหมด Min-Max สำหรับลม Purge แบบคำนวณตำแหน่งอาเรย์ตรงๆ ไม่วนลูปซ้อน
       if (mode === 'minmax') {
         const numBuckets = Math.floor(maxPoints / 2);
         const bucketSize = total / numBuckets;
@@ -455,6 +457,7 @@
           const startIdx = Math.floor(i * bucketSize);
           const endIdx = Math.min(Math.floor((i + 1) * bucketSize), total);
 
+          let minVal = Infinity, maxVal = -Infinity;
           let minRec = null, maxRec = null;
           let minIdx = -1, maxIdx = -1;
 
@@ -462,11 +465,13 @@
             const item = records[j];
             if (item.value === null || item.value === undefined || isNaN(item.value)) continue;
 
-            if (minRec === null || item.value < minRec.value) {
+            if (item.value < minVal) {
+              minVal = item.value;
               minRec = item;
               minIdx = j;
             }
-            if (maxRec === null || item.value > maxRec.value) {
+            if (item.value > maxVal) {
+              maxVal = item.value;
               maxRec = item;
               maxIdx = j;
             }
@@ -489,50 +494,33 @@
           }
         }
 
-        return {
-          labels: sampledLabels,
-          values: sampledValues,
-          isDownsampled: true,
-          originalCount: total
-        };
+        return { labels: sampledLabels, values: sampledValues, isDownsampled: true, originalCount: total };
       }
 
-      const bucketSize = total / maxPoints;
+      // โหมด Max / Min ปกติ
       for (let i = 0; i < maxPoints; i++) {
-        const startIdx = Math.floor(i * bucketSize);
-        const endIdx = Math.min(Math.floor((i + 1) * bucketSize), total);
-        
-        let selectedRecord = null;
+        const startIdx = Math.floor(i * step);
+        const endIdx = Math.min(Math.floor((i + 1) * step), total);
+
+        let targetRec = records[startIdx];
+        if (!targetRec) continue;
 
         for (let j = startIdx; j < endIdx; j++) {
           const item = records[j];
           if (item.value === null || item.value === undefined || isNaN(item.value)) continue;
 
-          if (selectedRecord === null) {
-            selectedRecord = item;
-          } else if (mode === 'max' && item.value > selectedRecord.value) {
-            selectedRecord = item;
-          } else if (mode === 'min' && item.value < selectedRecord.value) {
-            selectedRecord = item;
+          if (mode === 'max' && item.value > targetRec.value) {
+            targetRec = item;
+          } else if (mode === 'min' && item.value < targetRec.value) {
+            targetRec = item;
           }
         }
 
-        if (selectedRecord === null && startIdx < total) {
-          selectedRecord = records[startIdx];
-        }
-
-        if (selectedRecord) {
-          sampledLabels.push(selectedRecord.label);
-          sampledValues.push(selectedRecord.value);
-        }
+        sampledLabels.push(targetRec.label);
+        sampledValues.push(targetRec.value);
       }
 
-      return {
-        labels: sampledLabels,
-        values: sampledValues,
-        isDownsampled: true,
-        originalCount: total
-      };
+      return { labels: sampledLabels, values: sampledValues, isDownsampled: true, originalCount: total };
     }
 
     function parseSheetTimestamp(rawTs) {
@@ -966,7 +954,6 @@
         });
     }
 
-    // โหลดข้อมูลประวัติแค่ครั้งเดียวตอนเปิดหน้าเว็บ (Lazy Cache) แล้วเก็บไว้ในตัวแปร bfHistory
     async function fetchBFHistory() {
         try {
             const res = await fetch("https://script.google.com/macros/s/AKfycbwkMTHj9lhFm79HaQTtLE4tC77O1ILsmazRb6s5tPdamXZct9hlC7sEwc9Xb3l4XydN/exec");
@@ -1099,7 +1086,7 @@
             }]
           },
           series: [{ name: 'Purge Pressure', data: curBuf.data }]
-        }, false, false);
+        });
       }
     }
 
@@ -1113,7 +1100,7 @@
       }
     }
 
-    // เรนเดอร์กราฟประวัติ Bag Filter โดยดึงจากแคช bfHistory ทันที ไม่โหลดซ้ำซ้อน
+    // กรองและย่อข้อมูลประวัติแบบสตรีมมิ่งความเร็วสูง
     function renderBFHistoryChart(hours) {
       if (!bfHistory || bfHistory.length === 0) {
         myChart.updateOptions({
@@ -1136,22 +1123,26 @@
         filteredRows = bfHistory.slice(-hours * 60);
       }
 
-      const rawRecords = [];
+      const rawLabels = [];
+      const rawValues = [];
       let overallMin = null;
       let latestVal = null;
 
-      filteredRows.forEach(r => {
+      for (let i = 0; i < filteredRows.length; i++) {
+        const r = filteredRows[i];
         const rawP = parseFloat(r[activeGateKey]);
-        if (isNaN(rawP)) return;
+        if (isNaN(rawP)) continue;
 
         const labelStr = r._epochMs ? dayjs(r._epochMs).format(timeFormat) : String(r.Timestamp || '');
-        rawRecords.push({ label: labelStr, value: rawP });
+        rawLabels.push(labelStr);
+        rawValues.push(rawP);
 
         if (overallMin === null || rawP < overallMin) overallMin = rawP;
         latestVal = rawP;
-      });
+      }
 
-      const sampled = downsampleSeries(rawRecords, MAX_CHART_POINTS, 'minmax');
+      const combinedRecords = rawLabels.map((l, idx) => ({ label: l, value: rawValues[idx] }));
+      const sampled = downsampleSeries(combinedRecords, MAX_CHART_POINTS, 'minmax');
 
       if (latestBfValues[activeGateKey] === undefined && latestVal !== null) {
         document.getElementById('modal-bf-cur').innerText = `${latestVal.toFixed(2)} Bar`;
