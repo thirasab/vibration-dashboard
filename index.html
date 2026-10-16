@@ -211,11 +211,9 @@
         </div>
       </div>
       <div class="header-actions">
-        <!-- ปุ่มตั้งค่า Alarm ความสั่นสะเทือน (แสดงเฉพาะหน้า Vibration) -->
         <button class="btn-action-toggle" onclick="setAlarmLimit()" style="background: var(--accent); color: white;" id="alarm-btn">
           <i class="fa-solid fa-triangle-exclamation"></i> Alarm: <span id="alarm-display">40</span>
         </button>
-        <!-- ปุ่มตั้งค่าเกณฑ์แรงดันลม Purge ต่ำ (แสดงเฉพาะหน้า Bag Filter) -->
         <button class="btn-action-toggle" onclick="setBfAlarmLimit()" style="background: var(--bf-primary); color: #0c1017; display: none;" id="bf-alarm-btn">
           <i class="fa-solid fa-gauge"></i> BF Limit: <span id="bf-alarm-display">4.0</span>
         </button>
@@ -384,7 +382,7 @@
 
     let lastUpdateTimes = {};
     let alarmLimit = Math.max(MIN_VIB_Y_HIGH, parseFloat(localStorage.getItem('vibAlarmLimit')) || 40.0);
-    let bfAlarmLimit = parseFloat(localStorage.getItem('bfAlarmLimit')) || 4.0; // เกณฑ์แรงดันต่ำ Bag Filter ตั้งค่าได้จากหน้าเว็บ
+    let bfAlarmLimit = parseFloat(localStorage.getItem('bfAlarmLimit')) || 4.0;
     
     let latestValues = {}; 
     let alertStatus = {}; 
@@ -556,7 +554,23 @@
         baseYAxis.max = maxDataVal > MIN_VIB_Y_HIGH ? Math.ceil(maxDataVal * 1.1) : MIN_VIB_Y_HIGH;
       } else if (yUnit === 'Bar') {
         baseYAxis.min = 0;
-        baseYAxis.max = maxDataVal > MIN_BF_Y_HIGH ? Math.ceil(maxDataVal * 1.1) : MIN_BF_Y_HIGH;
+        const calculatedMax = maxDataVal > MIN_BF_Y_HIGH ? Math.ceil(maxDataVal * 1.1) : MIN_BF_Y_HIGH;
+        // ให้แน่ใจว่าเพดานสูงสุดของแกน Y จะต้องไม่ต่ำกว่าค่า BF Limit ที่ตั้งไว้ เพื่อไม่ให้เส้นประตกขอบบน
+        baseYAxis.max = Math.max(calculatedMax, bfAlarmLimit * 1.2);
+
+        // เพิ่มเส้นประสีแดง (Annotations) แสดงระดับเกณฑ์ BF Limit คาดขวางบนกราฟแรงดันลม Purge
+        baseYAxis.annotations = {
+          yaxis: [{
+            y: bfAlarmLimit,
+            borderColor: '#ef4444',
+            strokeDashArray: 4,
+            label: {
+              borderColor: '#ef4444',
+              style: { color: '#ffffff', background: '#ef4444', fontFamily: 'Prompt', fontSize: '11px' },
+              text: `BF Limit: ${bfAlarmLimit.toFixed(1)} Bar`
+            }
+          }]
+        };
       }
 
       return baseYAxis;
@@ -1235,7 +1249,16 @@
         bfAlarmLimit = parseFloat(val);
         localStorage.setItem('bfAlarmLimit', bfAlarmLimit);
         document.getElementById('bf-alarm-display').innerText = bfAlarmLimit;
-        checkOfflineStatus(); // สั่งตรวจสอบสถานะการแจ้งเตือนทันทีด้วยเกณฑ์ใหม่
+        
+        // ถือโอกาสรีเฟรชกราฟ Bag Filter ที่กำลังเปิดอยู่ให้เส้นประขยับตามค่าใหม่ทันที
+        if (isModalOpen && currentModalType === 'bf') {
+          if (isLiveMode) {
+            switchToLiveMode();
+          } else {
+            loadDataByDuration(currentDurationHours);
+          }
+        }
+        checkOfflineStatus();
       }
     }
 
