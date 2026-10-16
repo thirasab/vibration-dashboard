@@ -431,7 +431,7 @@
     };
 
     /* ==========================================
-       ฟังก์ชัน Fast Downsampling สำหรับข้อมูลทุก 5 นาที
+       ฟังก์ชัน Fast Downsampling
        ========================================== */
     function downsampleSeries(records, maxPoints = MAX_CHART_POINTS, mode = 'max') {
       const total = records.length;
@@ -1068,7 +1068,6 @@
         minEl.style.color = minVal < bfAlarmLimit ? '#ef4444' : 'var(--text-main)';
 
         myChart.updateOptions({
-          title: { text: `${activeGateTitle} แรงดันลม Purge (Live MQTT)` },
           xaxis: { categories: curBuf.labels },
           yaxis: buildYAxisConfig('Bar', curBuf.data),
           annotations: {
@@ -1098,7 +1097,7 @@
       }
     }
 
-    // ประมวลผลและลดจำนวนจุดแบบสตรีมมิ่งความเร็วสูงสำหรับข้อมูลทุก 5 นาที
+    // ประมวลผลและลดจำนวนจุดแบบสตรีมมิ่งความเร็วสูง พร้อมฟอร์แมตเวลาแบบกระชับอัตโนมัติ
     function renderBFHistoryChart(hours) {
       if (!bfHistory || bfHistory.length === 0) {
         myChart.updateOptions({
@@ -1109,19 +1108,17 @@
         return;
       }
 
-      const timeFormat = hours >= 24 ? 'DD/MM HH:mm' : 'HH:mm:ss';
+      // ปรับรูปแบบเวลาให้กระชับ: ถ้าดู 1h-12h แสดงเฉพาะ [ชั่วโมง:นาที], ถ้าดู 1d ขึ้นไป แสดง [วัน/เดือน ชั่วโมง:นาที]
+      const timeFormat = hours >= 24 ? 'DD/MM HH:mm' : 'HH:mm';
       const validTimestamps = bfHistory.filter(r => r._epochMs !== null);
       let filteredRows = [];
 
       if (validTimestamps.length > 0) {
         const latestSheetTime = validTimestamps[validTimestamps.length - 1]._epochMs;
         const cutoffTime = latestSheetTime - (hours * 60 * 60 * 1000);
-        
-        // กรองเฉพาะช่วงเวลาที่ต้องการแบบเร็ว (Binary/Linear Search Optimization)
         filteredRows = validTimestamps.filter(r => r._epochMs >= cutoffTime);
       } else {
-        // หากไม่มี Timestamp คำนวณตามความถี่บันทึกทุก 5 นาที (1 ชม. = 12 จุด)
-        const expectedPoints = hours * 12;
+        const expectedPoints = hours * 12; // บันทึกทุก 5 นาที (1 ชม. = 12 จุด)
         filteredRows = bfHistory.slice(-expectedPoints);
       }
 
@@ -1194,7 +1191,7 @@
     function fetchVibData(nodeId, hours, chartInstance, isBaseNode = false) {
       const referenceTime = lastUpdateTimes[nodeId] || Date.now();
       const startTime = referenceTime - (hours * 60 * 60 * 1000);
-      const timeFormat = hours >= 24 ? 'DD/MM HH:mm' : 'HH:mm:ss';
+      const timeFormat = hours >= 24 ? 'DD/MM HH:mm' : 'HH:mm';
 
       db.ref(`Vibration_Logs/${nodeId}`).orderByChild('gatewayEpoch').startAt(startTime / 1000).once('value', snap => {
           const vibRecords = [];
