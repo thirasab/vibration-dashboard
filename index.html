@@ -563,7 +563,7 @@
         const calculatedMax = maxDataVal > MIN_BF_Y_HIGH ? Math.ceil(maxDataVal * 1.1) : MIN_BF_Y_HIGH;
         baseYAxis.max = Math.max(calculatedMax, bfAlarmLimit * 1.3);
 
-        // กำหนดเส้นประ Target (BF Limit) ให้แสดงผลเสมอในโหมด Bar
+        // ผูกค่า annotations เข้ากับแกน Y เสมอสำหรับกราฟแรงดันลม Purge
         baseYAxis.annotations = {
           yaxis: [{
             y: bfAlarmLimit,
