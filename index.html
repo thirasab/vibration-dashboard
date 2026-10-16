@@ -629,26 +629,51 @@
     }
     function stopAutoTimer() { if (autoTimer) { clearInterval(autoTimer); autoTimer = null; } }
     function switchTab(group) { switchTabCore(group); if (isAutoMode) { autoRemaining = AUTO_MAX_TIME; updateAutoModeUI(); startAutoTimer(); } }
-
-    function switchTabCore(group) {
+function switchTabCore(group) {
       currentTabGroup = group;
+      
+      // อัปเดตสถานะปุ่มเมนู Tab (Active)
       document.querySelectorAll('.main-tab-btn').forEach(btn => {
         if(btn.dataset.group === group) btn.classList.add('active'); else btn.classList.remove('active');
       });
-      const devContainer = document.getElementById('devices-container'), bfContainer = document.getElementById('bf-container'), headerIcon = document.getElementById('header-icon'), headerText = document.getElementById('header-text'), alarmBtn = document.getElementById('alarm-btn'), bfAlarmBtn = document.getElementById('bf-alarm-btn');
+
+      const devContainer = document.getElementById('devices-container');
+      const bfContainer = document.getElementById('bf-container');
+      const headerIcon = document.getElementById('header-icon');
+      const headerText = document.getElementById('header-text');
+      const alarmBtn = document.getElementById('alarm-btn');
+      const bfAlarmBtn = document.getElementById('bf-alarm-btn');
 
       if (group === 'gate-bf') {
-        devContainer.style.display = 'none'; bfContainer.style.display = 'flex';
-        headerIcon.className = "fa-solid fa-wind"; headerIcon.style.color = "var(--bf-primary)";
+        // --- เมนู Bag Filter: แสดงเฉพาะการ์ดลม Purge และซ่อนการ์ดความสั่นทั้งหมด ---
+        devContainer.style.display = 'none'; 
+        bfContainer.style.display = 'flex';
+        
+        headerIcon.className = "fa-solid fa-wind"; 
+        headerIcon.style.color = "var(--bf-primary)";
         headerText.innerText = "CM 10-11 Bag Filter"; 
+        
         if(alarmBtn) alarmBtn.style.display = 'none'; 
         if(bfAlarmBtn) bfAlarmBtn.style.display = 'flex';
       } else {
-        devContainer.style.display = 'grid'; bfContainer.style.display = 'none';
-        headerIcon.className = "fa-solid fa-wave-square"; headerIcon.style.color = "var(--primary)";
+        // --- เมนูความสั่นสะเทือน: แสดงเฉพาะการ์ดกลุ่มที่เลือก และซ่อนการ์ด Bag Filter ---
+        devContainer.style.display = 'grid'; 
+        bfContainer.style.display = 'none';
+        
+        headerIcon.className = "fa-solid fa-wave-square"; 
+        headerIcon.style.color = "var(--primary)";
         headerText.innerText = "มอนิเตอร์ความสั่นสะเทือน & เสียง"; 
+        
         if(alarmBtn) alarmBtn.style.display = 'flex';
         if(bfAlarmBtn) bfAlarmBtn.style.display = 'none';
+
+        // วนลูปเช็คกลุ่มการ์ด Vibration ให้แสดงเฉพาะการ์ดที่ตรงกับแท็บที่เลือกเท่านั้น
+        DEVICE_LIST.filter(d => !d.id.endsWith('TOP')).forEach(dev => {
+          const card = document.getElementById(`card-${dev.id}`);
+          if(card) {
+            card.style.display = (dev.group === group) ? 'flex' : 'none';
+          }
+        });
       }
       setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
     }
