@@ -78,9 +78,19 @@
 
     /* Tabs */
     .main-tabs { display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto; background: var(--card-bg); padding: 6px; border-radius: 12px; border: var(--border); }
-    .main-tab-btn { flex: 1; padding: 10px 16px; border: none; border-radius: 8px; cursor: pointer; background: transparent; color: var(--text-sub); font-family: 'Inter', 'Prompt', sans-serif; font-weight: 600; font-size: 14px; white-space: nowrap; transition: all 0.2s; }
+    .main-tab-btn { flex: 1; padding: 10px 16px; border: none; border-radius: 8px; cursor: pointer; background: transparent; color: var(--text-sub); font-family: 'Inter', 'Prompt', sans-serif; font-weight: 600; font-size: 14px; white-space: nowrap; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
     .main-tab-btn.active { background: var(--primary); color: #ffffff; box-shadow: 0 4px 10px rgba(0, 176, 111, 0.2); }
     .main-tab-btn.bf-tab.active { background: var(--bf-primary); box-shadow: 0 4px 10px rgba(56, 189, 248, 0.2); }
+
+    /* แอนิเมชันเตือนบนปุ่ม Tab เมื่อมี Alarm ซ่อนอยู่ในหน้านั้น */
+    @keyframes flashTabDanger {
+      0%, 100% { background-color: rgba(239, 68, 68, 0.15); color: #ef4444; }
+      50% { background-color: #ef4444; color: #ffffff; }
+    }
+    .main-tab-btn.tab-alert:not(.active) {
+      animation: flashTabDanger 1s infinite !important;
+      font-weight: 700;
+    }
 
     /* Cards */
     .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; margin-bottom: 20px; }
@@ -217,10 +227,10 @@
     </header>
 
     <div class="main-tabs">
-      <button class="main-tab-btn active" data-group="cm10-11" onclick="switchTab('cm10-11')">CM10-11</button>
-      <button class="main-tab-btn" data-group="cm7-9" onclick="switchTab('cm7-9')">CM7-9</button>
-      <button class="main-tab-btn" data-group="cm5-6" onclick="switchTab('cm5-6')">CM5-6</button>
-      <button class="main-tab-btn bf-tab" data-group="gate-bf" onclick="switchTab('gate-bf')">PS. BF</button>
+      <button class="main-tab-btn active" id="tab-cm10-11" data-group="cm10-11" onclick="switchTab('cm10-11')">CM10-11</button>
+      <button class="main-tab-btn" id="tab-cm7-9" data-group="cm7-9" onclick="switchTab('cm7-9')">CM7-9</button>
+      <button class="main-tab-btn" id="tab-cm5-6" data-group="cm5-6" onclick="switchTab('cm5-6')">CM5-6</button>
+      <button class="main-tab-btn bf-tab" id="tab-gate-bf" data-group="gate-bf" onclick="switchTab('gate-bf')">PS. BF</button>
     </div>
 
     <!-- Container สำหรับ Vibration & Sound -->
@@ -360,12 +370,13 @@
     let latestBfValues = {};
 
     /* ==========================================
-       3. ตัวแปร Global & ตั้งค่าเพดานกราฟ
+       3. ตัวแปร Global & ตั้งค่าเพดานกราฟ / Alarm
        ========================================== */
     const OFFLINE_TIMEOUT = 10 * 60 * 1000;
     const MAX_CHART_POINTS = 300; 
-    const MIN_VIB_Y_HIGH = 10; // เพดานกราฟความสั่นสะเทือนต่ำสุดที่ 10 mm/s
-    const MIN_BF_Y_HIGH = 8;   // เพดานกราฟแรงดันลม Purge เริ่มต้นที่ 8 Bar
+    const MIN_VIB_Y_HIGH = 10;     // เพดานกราฟความสั่นสะเทือนต่ำสุดที่ 10 mm/s
+    const MIN_BF_Y_HIGH = 8;       // เพดานกราฟแรงดันลม Purge เริ่มต้นที่ 8 Bar
+    const BF_LOW_ALARM_LIMIT = 4.0; // เกณฑ์แจ้งเตือนเมื่อแรงดันลม Purge ต่ำกว่า 4.0 Bar
 
     let lastUpdateTimes = {};
     let alarmLimit = Math.max(MIN_VIB_Y_HIGH, parseFloat(localStorage.getItem('vibAlarmLimit')) || 40.0);
@@ -411,13 +422,8 @@
     };
 
     /* ==========================================
-       ฟังก์ชัน Downsampling (รองรับ Max, Min และ Min-Max สำหรับลม Purge)
+       ฟังก์ชัน Downsampling (Max, Min และ Min-Max)
        ========================================== */
-    /**
-     * @param {Array} records - อาร์เรย์ของ { label: 'เวลา', value: ตัวเลข }
-     * @param {Number} maxPoints - จำนวนจุดสูงสุดที่ต้องการแสดงบนกราฟ (เช่น 300 จุด)
-     * @param {String} mode - 'max' (Vibration/Sound), 'min' (ค่าต่ำสุด), 'minmax' (ลม Purge: เก็บทั้งจังหวะลมตกและจังหวะอัดเต็ม)
-     */
     function downsampleSeries(records, maxPoints = MAX_CHART_POINTS, mode = 'max') {
       const total = records.length;
       if (total <= maxPoints) {
@@ -432,7 +438,6 @@
       const sampledLabels = [];
       const sampledValues = [];
 
-      // โหมด 'minmax' สำหรับลม Purge: แบ่งเป็น maxPoints/2 กลุ่ม แล้วเก็บทั้งจุดต่ำสุด (Purge Drop) และจุดสูงสุด (Recovery) ตามลำดับเวลาจริง
       if (mode === 'minmax') {
         const numBuckets = Math.floor(maxPoints / 2);
         const bucketSize = total / numBuckets;
@@ -463,11 +468,9 @@
               sampledLabels.push(minRec.label);
               sampledValues.push(minRec.value);
             } else if (minIdx < maxIdx) {
-              // จังหวะลมตกเกิดก่อนจังหวะอัดกลับ
               sampledLabels.push(minRec.label, maxRec.label);
               sampledValues.push(minRec.value, maxRec.value);
             } else {
-              // จังหวะอัดเต็มเกิดก่อนจังหวะลมตก
               sampledLabels.push(maxRec.label, minRec.label);
               sampledValues.push(maxRec.value, minRec.value);
             }
@@ -485,7 +488,6 @@
         };
       }
 
-      // โหมด 'max' หรือ 'min'
       const bucketSize = total / maxPoints;
       for (let i = 0; i < maxPoints; i++) {
         const startIdx = Math.floor(i * bucketSize);
@@ -524,7 +526,6 @@
       };
     }
 
-    // แปลง Timestamp จาก Google Sheets ให้เป็น milliseconds อย่างปลอดภัย
     function parseSheetTimestamp(rawTs) {
       if (!rawTs) return null;
       const d = dayjs(rawTs);
@@ -532,7 +533,6 @@
       return null;
     }
 
-    // สร้าง Object ตั้งค่าแกน Y (ล็อกเพดานขั้นต่ำ 10 mm/s สำหรับ Vib และ 8 Bar สำหรับลม Purge)
     function buildYAxisConfig(yUnit = 'mm/s', dataValues = []) {
       const isDark = document.body.classList.contains('dark-mode');
       const baseYAxis = {
@@ -705,6 +705,7 @@
       const gateContainer = document.getElementById('gates-container');
       gateContainer.innerHTML = '';
       gatesConfig.forEach((gate) => {
+          alertStatus[gate.id] = false; // ตั้งค่าเริ่มต้นของ Alarm ลม Purge
           gateContainer.innerHTML += `
               <div class="status-card" id="card-${gate.id}" onclick="openGateModal('${gate.id}', 'PS. ${gate.name}', '${gate.color}')">
                 <div class="card-info">
@@ -862,16 +863,22 @@
             
             gatesConfig.forEach((gate, idx) => {
                 const rawVal = data[`p${idx+1}`];
-                if (rawVal !== undefined && rawVal !== null) {
-                    lastUpdateTimes[gate.id] = exactNow;
-                }
-                const val = (rawVal !== undefined && rawVal !== null) ? parseFloat(rawVal) : 0.0;
+                // ป้องกันกรณีค่าไม่ได้ส่งมาแล้วถูกปัดเป็น 0.0 จนร้องเตือนผิดพลาด
+                if (rawVal === undefined || rawVal === null || isNaN(parseFloat(rawVal))) return;
+
+                const val = parseFloat(rawVal);
+                lastUpdateTimes[gate.id] = exactNow;
                 latestBfValues[gate.id] = val;
                 
-                const valEl = document.getElementById(`val-${gate.id}`); if (valEl) valEl.innerHTML = val.toFixed(2) + " <span>Bar</span>";
+                const valEl = document.getElementById(`val-${gate.id}`);
+                if (valEl) valEl.innerHTML = val.toFixed(2) + " <span>Bar</span>";
                 const card = document.getElementById(`card-${gate.id}`), statusText = document.getElementById(`status-${gate.id}`);
                 
-                if (val < 4) {
+                // เช็คแรงดันลม Purge ต่ำกว่า 4.0 Bar เพื่อแจ้งเตือนทั้งสีการ์ดและเสียงไซเรน
+                const isLowPressure = (val < BF_LOW_ALARM_LIMIT);
+                alertStatus[gate.id] = isLowPressure;
+
+                if (isLowPressure) {
                     if(card) card.classList.add('alert-danger');
                     if(statusText) { statusText.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> Low Pressure'; statusText.style.color = '#ef4444'; }
                 } else {
@@ -885,6 +892,9 @@
                 if (sparkCharts[gate.id]) sparkCharts[gate.id].updateSeries([{ data: bfLiveBuffers[gate.id].data.slice(-MAX_SPARK_POINTS) }]);
             });
 
+            // สั่งตรวจสอบและเล่นเสียงไซเรนทันทีเมื่อมีจุดใดจุดหนึ่งต่ำกว่า 4 Bar
+            triggerAlarmLogic();
+
             if (isModalOpen && currentModalType === 'bf' && activeGateKey) {
                 const curVal = latestBfValues[activeGateKey];
                 if (curVal !== undefined) {
@@ -896,7 +906,7 @@
                     const minVal = curBuf.data.length > 0 ? Math.min(...curBuf.data) : 0;
                     const minEl = document.getElementById('modal-bf-min');
                     minEl.innerText = `${minVal.toFixed(2)} Bar`;
-                    minEl.style.color = minVal < 4 ? '#ef4444' : 'var(--text-main)';
+                    minEl.style.color = minVal < BF_LOW_ALARM_LIMIT ? '#ef4444' : 'var(--text-main)';
 
                     myChart.updateOptions({
                       xaxis: { categories: curBuf.labels },
@@ -923,7 +933,6 @@
             const res = await fetch("https://script.google.com/macros/s/AKfycbwkMTHj9lhFm79HaQTtLE4tC77O1ILsmazRb6s5tPdamXZct9hlC7sEwc9Xb3l4XydN/exec");
             const rawJson = await res.json();
             if (Array.isArray(rawJson)) {
-                // แปลงและแคชค่าเวลาเป็น ms ล่วงหน้าเพื่อให้กรองข้อมูลย้อนหลังได้ทันทีไม่หน่วงเครื่อง
                 bfHistory = rawJson.map(r => ({
                     ...r,
                     _epochMs: parseSheetTimestamp(r.Timestamp || r.timestamp || r.Date)
@@ -992,7 +1001,6 @@
       currentModalType = 'bf'; activeGateKey = gateId; activeGateTitle = title; activeGateColor = color; document.body.setAttribute('data-modal', 'bf');
       document.getElementById('modal-title').innerText = `${title} (Purge Air Pressure)`;
       
-      // เปิดแถบสถิติสำหรับ Bag Filter
       document.getElementById('modal-temp-bar').style.display = 'flex';
       document.getElementById('modal-temp-box').style.display = 'none';
       document.getElementById('modal-sound-box').style.display = 'none';
@@ -1033,7 +1041,7 @@
         const minVal = curBuf.data.length > 0 ? Math.min(...curBuf.data) : 0;
         const minEl = document.getElementById('modal-bf-min');
         minEl.innerText = curBuf.data.length > 0 ? `${minVal.toFixed(2)} Bar` : '-- Bar';
-        minEl.style.color = minVal < 4 ? '#ef4444' : 'var(--text-main)';
+        minEl.style.color = minVal < BF_LOW_ALARM_LIMIT ? '#ef4444' : 'var(--text-main)';
 
         myChart.updateOptions({
           title: { text: `${activeGateTitle} แรงดันลม Purge (Live MQTT)` },
@@ -1054,7 +1062,6 @@
       }
     }
 
-    // ฟังก์ชันกรองข้อมูลย้อนหลังตามเวลาจริงและทำ Min-Max Downsampling สำหรับลม Purge
     function renderBFHistoryChart(hours) {
       if (!bfHistory || bfHistory.length === 0) {
         myChart.updateOptions({
@@ -1070,12 +1077,10 @@
       let filteredRows = [];
 
       if (validTimestamps.length > 0) {
-        // ยึดเวลาล่าสุดของข้อมูลใน Sheet เป็นจุดอ้างอิง ป้องกันปัญหานาฬิกาเครื่องคอมเพี้ยน
         const latestSheetTime = validTimestamps[validTimestamps.length - 1]._epochMs;
         const cutoffTime = latestSheetTime - (hours * 60 * 60 * 1000);
         filteredRows = validTimestamps.filter(r => r._epochMs >= cutoffTime);
       } else {
-        // กรณีรูปแบบวันที่ใน Sheet แปลกจนแปลงไม่ได้ ให้คำนวณจำนวนแถวแบบเผื่อ 60 จุดต่อชั่วโมง
         filteredRows = bfHistory.slice(-hours * 60);
       }
 
@@ -1094,23 +1099,20 @@
         latestVal = rawP;
       });
 
-      // ใช้โหมด 'minmax' เพื่อเก็บทั้งจังหวะลมตกตอนโซลินอยด์ยิง Purge และจังหวะปั๊มลมอัดกลับ
       const sampled = downsampleSeries(rawRecords, MAX_CHART_POINTS, 'minmax');
 
-      // อัปเดตตัวเลขสรุปด้านบน Modal
       if (latestBfValues[activeGateKey] === undefined && latestVal !== null) {
         document.getElementById('modal-bf-cur').innerText = `${latestVal.toFixed(2)} Bar`;
       }
       const minEl = document.getElementById('modal-bf-min');
       if (overallMin !== null) {
         minEl.innerText = `${overallMin.toFixed(2)} Bar`;
-        minEl.style.color = overallMin < 4 ? '#ef4444' : 'var(--text-main)';
+        minEl.style.color = overallMin < BF_LOW_ALARM_LIMIT ? '#ef4444' : 'var(--text-main)';
       } else {
         minEl.innerText = '-- Bar';
         minEl.style.color = 'var(--text-main)';
       }
 
-      // แสดงป้ายแจ้งเตือนเมื่อทำ Downsampling
       const dsBadge = document.getElementById('modal-downsample-info');
       const dsText = document.getElementById('downsample-text');
       if (sampled.isDownsampled) {
@@ -1206,7 +1208,7 @@
     function closeModalOutside(e) { if (e.target.classList.contains('modal-overlay')) closeModal(); }
 
     /* ==========================================
-       9. System Utilities
+       9. System Utilities & Alarm Logic (รวม Vib + Bag Filter)
        ========================================== */
     function setAlarmLimit() {
       const val = prompt("ตั้งค่าขีดจำกัดแจ้งเตือน (Alarm Limit mm/s - ขั้นต่ำ 10 mm/s):", alarmLimit);
@@ -1223,12 +1225,84 @@
       }
     }
 
-    function toggleSound() {
-      isSoundEnabled = !isSoundEnabled; const btn = document.getElementById('sound-toggle');
-      if (isSoundEnabled) { btn.innerHTML = '<i class="fa-solid fa-bell"></i> เปิดเสียง'; btn.style.background = '#ef4444'; btn.style.color = '#ffffff'; } 
-      else { btn.innerHTML = '<i class="fa-solid fa-bell-slash"></i> ปิดเสียง'; btn.style.background = 'var(--theme-btn-bg)'; btn.style.color = 'var(--theme-btn-text)'; alarmSound.pause(); }
+    // อัปเดตสถานะกะพริบสีแดงที่ปุ่ม Tab ด้านบน เมื่อมี Alarm ซ่อนอยู่ในหน้านั้น
+    function updateTabAlarmBadges() {
+      const groupHasAlarm = {
+        'cm10-11': false,
+        'cm7-9': false,
+        'cm5-6': false,
+        'gate-bf': false
+      };
+
+      DEVICE_LIST.forEach(dev => {
+        if (alertStatus[dev.id] === true) {
+          groupHasAlarm[dev.group] = true;
+        }
+      });
+
+      gatesConfig.forEach(gate => {
+        if (alertStatus[gate.id] === true) {
+          groupHasAlarm['gate-bf'] = true;
+        }
+      });
+
+      Object.keys(groupHasAlarm).forEach(groupKey => {
+        const tabBtn = document.getElementById(`tab-${groupKey}`);
+        if (!tabBtn) return;
+        const baseLabel = groupKey === 'gate-bf' ? 'PS. BF' : groupKey.toUpperCase();
+        if (groupHasAlarm[groupKey]) {
+          tabBtn.classList.add('tab-alert');
+          tabBtn.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> ${baseLabel}`;
+        } else {
+          tabBtn.classList.remove('tab-alert');
+          tabBtn.innerHTML = baseLabel;
+        }
+      });
     }
-    function triggerAlarmLogic() { const hasAnyAlarm = Object.values(alertStatus).some(status => status === true); if (hasAnyAlarm && isSoundEnabled) { alarmSound.play().catch(() => {}); } else { alarmSound.pause(); } }
+
+    function toggleSound() {
+      isSoundEnabled = !isSoundEnabled;
+      const btn = document.getElementById('sound-toggle');
+      if (isSoundEnabled) {
+        btn.innerHTML = '<i class="fa-solid fa-bell"></i> เปิดเสียง';
+        btn.style.background = '#ef4444';
+        btn.style.color = '#ffffff';
+        // ปลดล็อก Browser Autoplay ทันทีที่ผู้ใช้คลิกปุ่มเปิดเสียง
+        const hasAnyAlarm = Object.values(alertStatus).some(status => status === true);
+        if (hasAnyAlarm) {
+          alarmSound.play().catch(() => {});
+        } else {
+          alarmSound.muted = true;
+          alarmSound.play().then(() => {
+            alarmSound.pause();
+            alarmSound.currentTime = 0;
+            alarmSound.muted = false;
+          }).catch(() => {
+            alarmSound.muted = false;
+          });
+        }
+      } else {
+        btn.innerHTML = '<i class="fa-solid fa-bell-slash"></i> ปิดเสียง';
+        btn.style.background = 'var(--theme-btn-bg)';
+        btn.style.color = 'var(--theme-btn-text)';
+        alarmSound.pause();
+        alarmSound.currentTime = 0;
+      }
+    }
+
+    function triggerAlarmLogic() {
+      updateTabAlarmBadges();
+      const hasAnyAlarm = Object.values(alertStatus).some(status => status === true);
+      if (hasAnyAlarm && isSoundEnabled) {
+        if (alarmSound.paused) {
+          alarmSound.play().catch(() => {});
+        }
+      } else {
+        alarmSound.pause();
+        alarmSound.currentTime = 0;
+      }
+    }
+
     function toggleDarkMode() { document.body.classList.toggle('dark-mode'); const isDark = document.body.classList.contains('dark-mode'); document.getElementById('theme-toggle').innerHTML = isDark ? '<i class="fa-solid fa-sun"></i> กลางวัน' : '<i class="fa-solid fa-moon"></i> กลางคืน'; }
 
     window.onload = function() {
