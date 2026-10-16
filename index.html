@@ -217,6 +217,10 @@
         <button class="btn-action-toggle" onclick="setBfAlarmLimit()" style="background: var(--bf-primary); color: #0c1017; display: none;" id="bf-alarm-btn">
           <i class="fa-solid fa-gauge"></i> BF Limit: <span id="bf-alarm-display">4.0</span>
         </button>
+        <!-- ปุ่ม ACK (Acknowledge) ปิดเสียงชั่วคราว 15 นาที -->
+        <button class="btn-action-toggle" id="ack-btn" onclick="acknowledgeAlarm()" style="background: #f59e0b; color: #ffffff;" title="รับทราบและปิดเสียงเตือนชั่วคราว 15 นาที">
+          <i class="fa-solid fa-bell-slash"></i> <span id="ack-text">Ack (15m)</span>
+        </button>
         <button class="btn-action-toggle" id="auto-toggle" onclick="toggleAutoMode()" style="background: var(--primary); color: white;">
           <i class="fa-solid fa-rotate"></i> <span>Auto (10s)</span>
         </button>
@@ -373,12 +377,12 @@
     let latestBfValues = {};
 
     /* ==========================================
-       3. ตัวแปร Global & ตั้งค่าเพดานกราฟ / Alarm
+       3. ตัวแปร Global & ตั้งค่าเพดานกราฟ / Alarm / ACK
        ========================================== */
     const OFFLINE_TIMEOUT = 10 * 60 * 1000;
     const MAX_CHART_POINTS = 300; 
-    const MIN_VIB_Y_HIGH = 10;     // เพดานกราฟความสั่นสะเทือนต่ำสุดที่ 10 mm/s
-    const MIN_BF_Y_HIGH = 8;       // เพดานกราฟแรงดันลม Purge เริ่มต้นที่ 8 Bar
+    const MIN_VIB_Y_HIGH = 10;     
+    const MIN_BF_Y_HIGH = 8;       
 
     let lastUpdateTimes = {};
     let alarmLimit = Math.max(MIN_VIB_Y_HIGH, parseFloat(localStorage.getItem('vibAlarmLimit')) || 40.0);
@@ -418,6 +422,10 @@
     const alarmSound = new Audio('https://actions.google.com/sounds/v1/alarms/digital_watch_alarm_long.ogg');
     alarmSound.loop = true; 
     let isSoundEnabled = false;
+
+    // ตัวแปรควบคุมระบบ Acknowledge (ปิดเสียงชั่วคราว)
+    let ackUntilTimestamp = 0;
+    let ackTimerInterval = null;
 
     const sparkOptions = {
         chart: { type: 'line', width: 100, height: 30, sparkline: { enabled: true }, animations: { enabled: false } },
@@ -555,10 +563,8 @@
       } else if (yUnit === 'Bar') {
         baseYAxis.min = 0;
         const calculatedMax = maxDataVal > MIN_BF_Y_HIGH ? Math.ceil(maxDataVal * 1.1) : MIN_BF_Y_HIGH;
-        // ให้แน่ใจว่าเพดานสูงสุดของแกน Y จะต้องไม่ต่ำกว่าค่า BF Limit ที่ตั้งไว้ เพื่อไม่ให้เส้นประตกขอบบน
         baseYAxis.max = Math.max(calculatedMax, bfAlarmLimit * 1.2);
 
-        // เพิ่มเส้นประสีแดง (Annotations) แสดงระดับเกณฑ์ BF Limit คาดขวางบนกราฟแรงดันลม Purge
         baseYAxis.annotations = {
           yaxis: [{
             y: bfAlarmLimit,
@@ -1250,7 +1256,6 @@
         localStorage.setItem('bfAlarmLimit', bfAlarmLimit);
         document.getElementById('bf-alarm-display').innerText = bfAlarmLimit;
         
-        // ถือโอกาสรีเฟรชกราฟ Bag Filter ที่กำลังเปิดอยู่ให้เส้นประขยับตามค่าใหม่ทันที
         if (isModalOpen && currentModalType === 'bf') {
           if (isLiveMode) {
             switchToLiveMode();
@@ -1259,6 +1264,45 @@
           }
         }
         checkOfflineStatus();
+      }
+    }
+
+    // ฟังก์ชันกดรับทราบเพื่อปิดเสียงชั่วคราว 15 นาที
+    function acknowledgeAlarm() {
+      ackUntilTimestamp = Date.now() + (15 * 60 * 1000);
+      alarmSound.pause();
+      alarmSound.currentTime = 0;
+      updateAckButtonUI();
+      startAckCountdownTimer();
+    }
+
+    function startAckCountdownTimer() {
+      if (ackTimerInterval) clearInterval(ackTimerInterval);
+      ackTimerInterval = setInterval(() => {
+        const remaining = ackUntilTimestamp - Date.now();
+        if (remaining <= 0) {
+          ackUntilTimestamp = 0;
+          clearInterval(ackTimerInterval);
+          ackTimerInterval = null;
+        }
+        updateAckButtonUI();
+      }, 1000);
+    }
+
+    function updateAckButtonUI() {
+      const ackBtn = document.getElementById('ack-btn');
+      const ackText = document.getElementById('ack-text');
+      const now = Date.now();
+
+      if (ackUntilTimestamp > now) {
+        const remainingSec = Math.ceil((ackUntilTimestamp - now) / 1000);
+        const mins = Math.floor(remainingSec / 60);
+        const secs = remainingSec % 60;
+        ackBtn.style.background = '#6b7280'; // เปลี่ยนเป็นสีเทาเมื่อกำลัง Mute อยู่
+        ackText.innerText = `Ack (${mins}:${secs < 10 ? '0' : ''}${secs})`;
+      } else {
+        ackBtn.style.background = '#f59e0b'; // สีส้มปกติเมื่อไม่ได้ Mute
+        ackText.innerText = 'Ack (15m)';
       }
     }
 
@@ -1304,7 +1348,7 @@
         btn.style.background = '#ef4444';
         btn.style.color = '#ffffff';
         const hasAnyAlarm = Object.values(alertStatus).some(status => status === true);
-        if (hasAnyAlarm) {
+        if (hasAnyAlarm && Date.now() > ackUntilTimestamp) {
           alarmSound.play().catch(() => {});
         } else {
           alarmSound.muted = true;
@@ -1328,7 +1372,10 @@
     function triggerAlarmLogic() {
       updateTabAlarmBadges();
       const hasAnyAlarm = Object.values(alertStatus).some(status => status === true);
-      if (hasAnyAlarm && isSoundEnabled) {
+      const isAckActive = Date.now() < ackUntilTimestamp;
+
+      // จะส่งเสียงก็ต่อเมื่อมี Alarm และผู้ใช้เปิดเสียงไว้ และไม่ได้อยู่ในช่วงเวลา Mute ชั่วคราว (ACK)
+      if (hasAnyAlarm && isSoundEnabled && !isAckActive) {
         if (alarmSound.paused) {
           alarmSound.play().catch(() => {});
         }
