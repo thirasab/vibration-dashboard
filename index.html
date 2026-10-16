@@ -253,8 +253,9 @@
         </div>
       </div>
 
+      <!-- แถบสถิติ (รองรับทั้งโหมด Vibration และโหมด Bag Filter Purge Pressure) -->
       <div class="sensor-stats-bar" id="modal-temp-bar">
-        <div class="stat-item">
+        <div class="stat-item" id="modal-temp-box">
           <i class="fa-solid fa-temperature-half" style="color: #ef4444;"></i> 
           <span>อุณหภูมิมอเตอร์:</span>
           <span class="val" id="modal-temp">-- °C</span>
@@ -263,6 +264,16 @@
           <i class="fa-solid fa-volume-high" style="color: var(--sound-color);"></i> 
           <span>ระดับเสียง:</span>
           <span class="val" id="modal-sound">-- dB</span>
+        </div>
+        <div class="stat-item" id="modal-bf-cur-box" style="display: none;">
+          <i class="fa-solid fa-gauge-high" style="color: var(--bf-primary);"></i> 
+          <span>แรงดันล่าสุด:</span>
+          <span class="val" id="modal-bf-cur">-- Bar</span>
+        </div>
+        <div class="stat-item" id="modal-bf-min-box" style="display: none;">
+          <i class="fa-solid fa-arrow-trend-down" style="color: #ef4444;"></i> 
+          <span>ต่ำสุดในช่วงเวลา (Min Purge):</span>
+          <span class="val" id="modal-bf-min">-- Bar</span>
         </div>
         <div class="stat-item" id="modal-downsample-info" style="margin-left: auto; font-size: 12px; color: var(--primary); display: none;">
           <i class="fa-solid fa-bolt"></i> <span id="downsample-text">Peak Mode</span>
@@ -346,6 +357,7 @@
         { id: 'p8', name: '6511.80', color: '#38bdf8' }
     ];
     let bfHistory = []; 
+    let latestBfValues = {};
 
     /* ==========================================
        3. ตัวแปร Global & ตั้งค่าเพดานกราฟ
@@ -353,6 +365,7 @@
     const OFFLINE_TIMEOUT = 10 * 60 * 1000;
     const MAX_CHART_POINTS = 300; 
     const MIN_VIB_Y_HIGH = 10; // เพดานกราฟความสั่นสะเทือนต่ำสุดที่ 10 mm/s
+    const MIN_BF_Y_HIGH = 8;   // เพดานกราฟแรงดันลม Purge เริ่มต้นที่ 8 Bar
 
     let lastUpdateTimes = {};
     let alarmLimit = Math.max(MIN_VIB_Y_HIGH, parseFloat(localStorage.getItem('vibAlarmLimit')) || 40.0);
@@ -398,8 +411,13 @@
     };
 
     /* ==========================================
-       ฟังก์ชัน Downsampling & ตั้งค่าแกน Y
+       ฟังก์ชัน Downsampling (รองรับ Max, Min และ Min-Max สำหรับลม Purge)
        ========================================== */
+    /**
+     * @param {Array} records - อาร์เรย์ของ { label: 'เวลา', value: ตัวเลข }
+     * @param {Number} maxPoints - จำนวนจุดสูงสุดที่ต้องการแสดงบนกราฟ (เช่น 300 จุด)
+     * @param {String} mode - 'max' (Vibration/Sound), 'min' (ค่าต่ำสุด), 'minmax' (ลม Purge: เก็บทั้งจังหวะลมตกและจังหวะอัดเต็ม)
+     */
     function downsampleSeries(records, maxPoints = MAX_CHART_POINTS, mode = 'max') {
       const total = records.length;
       if (total <= maxPoints) {
@@ -413,8 +431,62 @@
 
       const sampledLabels = [];
       const sampledValues = [];
-      const bucketSize = total / maxPoints;
 
+      // โหมด 'minmax' สำหรับลม Purge: แบ่งเป็น maxPoints/2 กลุ่ม แล้วเก็บทั้งจุดต่ำสุด (Purge Drop) และจุดสูงสุด (Recovery) ตามลำดับเวลาจริง
+      if (mode === 'minmax') {
+        const numBuckets = Math.floor(maxPoints / 2);
+        const bucketSize = total / numBuckets;
+
+        for (let i = 0; i < numBuckets; i++) {
+          const startIdx = Math.floor(i * bucketSize);
+          const endIdx = Math.min(Math.floor((i + 1) * bucketSize), total);
+
+          let minRec = null, maxRec = null;
+          let minIdx = -1, maxIdx = -1;
+
+          for (let j = startIdx; j < endIdx; j++) {
+            const item = records[j];
+            if (item.value === null || item.value === undefined || isNaN(item.value)) continue;
+
+            if (minRec === null || item.value < minRec.value) {
+              minRec = item;
+              minIdx = j;
+            }
+            if (maxRec === null || item.value > maxRec.value) {
+              maxRec = item;
+              maxIdx = j;
+            }
+          }
+
+          if (minRec && maxRec) {
+            if (minIdx === maxIdx) {
+              sampledLabels.push(minRec.label);
+              sampledValues.push(minRec.value);
+            } else if (minIdx < maxIdx) {
+              // จังหวะลมตกเกิดก่อนจังหวะอัดกลับ
+              sampledLabels.push(minRec.label, maxRec.label);
+              sampledValues.push(minRec.value, maxRec.value);
+            } else {
+              // จังหวะอัดเต็มเกิดก่อนจังหวะลมตก
+              sampledLabels.push(maxRec.label, minRec.label);
+              sampledValues.push(maxRec.value, minRec.value);
+            }
+          } else if (startIdx < total) {
+            sampledLabels.push(records[startIdx].label);
+            sampledValues.push(records[startIdx].value);
+          }
+        }
+
+        return {
+          labels: sampledLabels,
+          values: sampledValues,
+          isDownsampled: true,
+          originalCount: total
+        };
+      }
+
+      // โหมด 'max' หรือ 'min'
+      const bucketSize = total / maxPoints;
       for (let i = 0; i < maxPoints; i++) {
         const startIdx = Math.floor(i * bucketSize);
         const endIdx = Math.min(Math.floor((i + 1) * bucketSize), total);
@@ -452,7 +524,15 @@
       };
     }
 
-    // สร้าง Object ตั้งค่าแกน Y โดยล็อกเพดานขั้นต่ำ 10 mm/s สำหรับกราฟความสั่นสะเทือน
+    // แปลง Timestamp จาก Google Sheets ให้เป็น milliseconds อย่างปลอดภัย
+    function parseSheetTimestamp(rawTs) {
+      if (!rawTs) return null;
+      const d = dayjs(rawTs);
+      if (d.isValid()) return d.valueOf();
+      return null;
+    }
+
+    // สร้าง Object ตั้งค่าแกน Y (ล็อกเพดานขั้นต่ำ 10 mm/s สำหรับ Vib และ 8 Bar สำหรับลม Purge)
     function buildYAxisConfig(yUnit = 'mm/s', dataValues = []) {
       const isDark = document.body.classList.contains('dark-mode');
       const baseYAxis = {
@@ -462,12 +542,15 @@
         }
       };
 
+      const validNums = dataValues.filter(v => v !== null && v !== undefined && !isNaN(v));
+      const maxDataVal = validNums.length > 0 ? Math.max(...validNums) : 0;
+
       if (yUnit === 'mm/s') {
-        const validNums = dataValues.filter(v => v !== null && v !== undefined && !isNaN(v));
-        const maxDataVal = validNums.length > 0 ? Math.max(...validNums) : 0;
-        // ถ้าค่าสูงสุดไม่เกิน 10 ให้ล็อกเพดานที่ 10 mm/s แต่ถ้าเกิน 10 ให้ขยายเพดานขึ้นอัตโนมัติ
         baseYAxis.min = 0;
         baseYAxis.max = maxDataVal > MIN_VIB_Y_HIGH ? Math.ceil(maxDataVal * 1.1) : MIN_VIB_Y_HIGH;
+      } else if (yUnit === 'Bar') {
+        baseYAxis.min = 0;
+        baseYAxis.max = maxDataVal > MIN_BF_Y_HIGH ? Math.ceil(maxDataVal * 1.1) : MIN_BF_Y_HIGH;
       }
 
       return baseYAxis;
@@ -783,6 +866,7 @@
                     lastUpdateTimes[gate.id] = exactNow;
                 }
                 const val = (rawVal !== undefined && rawVal !== null) ? parseFloat(rawVal) : 0.0;
+                latestBfValues[gate.id] = val;
                 
                 const valEl = document.getElementById(`val-${gate.id}`); if (valEl) valEl.innerHTML = val.toFixed(2) + " <span>Bar</span>";
                 const card = document.getElementById(`card-${gate.id}`), statusText = document.getElementById(`status-${gate.id}`);
@@ -801,9 +885,26 @@
                 if (sparkCharts[gate.id]) sparkCharts[gate.id].updateSeries([{ data: bfLiveBuffers[gate.id].data.slice(-MAX_SPARK_POINTS) }]);
             });
 
-            if (isModalOpen && currentModalType === 'bf' && isLiveMode && activeGateKey) {
-                const curBuf = bfLiveBuffers[activeGateKey];
-                if (curBuf && myChart) myChart.updateOptions({ xaxis: { categories: curBuf.labels }, series: [{ name: 'Pressure', data: curBuf.data }] }, false, false);
+            if (isModalOpen && currentModalType === 'bf' && activeGateKey) {
+                const curVal = latestBfValues[activeGateKey];
+                if (curVal !== undefined) {
+                  document.getElementById('modal-bf-cur').innerText = `${curVal.toFixed(2)} Bar`;
+                }
+                if (isLiveMode) {
+                  const curBuf = bfLiveBuffers[activeGateKey];
+                  if (curBuf && myChart) {
+                    const minVal = curBuf.data.length > 0 ? Math.min(...curBuf.data) : 0;
+                    const minEl = document.getElementById('modal-bf-min');
+                    minEl.innerText = `${minVal.toFixed(2)} Bar`;
+                    minEl.style.color = minVal < 4 ? '#ef4444' : 'var(--text-main)';
+
+                    myChart.updateOptions({
+                      xaxis: { categories: curBuf.labels },
+                      yaxis: buildYAxisConfig('Bar', curBuf.data),
+                      series: [{ name: 'Purge Pressure', data: curBuf.data }]
+                    }, false, false);
+                  }
+                }
             }
             checkOfflineStatus();
         } catch(e) { console.error("MQTT parse error", e); }
@@ -820,12 +921,26 @@
     async function fetchBFHistory() {
         try {
             const res = await fetch("https://script.google.com/macros/s/AKfycbwkMTHj9lhFm79HaQTtLE4tC77O1ILsmazRb6s5tPdamXZct9hlC7sEwc9Xb3l4XydN/exec");
-            bfHistory = await res.json();
-            if(bfHistory.length > 0) {
-                gatesConfig.forEach(gate => {
-                    const plotData = bfHistory.map(r => parseFloat(r[gate.id]) || 0).slice(-MAX_SPARK_POINTS);
-                    if(sparkCharts[gate.id]) sparkCharts[gate.id].updateSeries([{ data: plotData }]);
-                });
+            const rawJson = await res.json();
+            if (Array.isArray(rawJson)) {
+                // แปลงและแคชค่าเวลาเป็น ms ล่วงหน้าเพื่อให้กรองข้อมูลย้อนหลังได้ทันทีไม่หน่วงเครื่อง
+                bfHistory = rawJson.map(r => ({
+                    ...r,
+                    _epochMs: parseSheetTimestamp(r.Timestamp || r.timestamp || r.Date)
+                }));
+
+                if (bfHistory.length > 0) {
+                    const lastRow = bfHistory[bfHistory.length - 1];
+                    gatesConfig.forEach(gate => {
+                        const plotData = bfHistory.map(r => parseFloat(r[gate.id]) || 0).slice(-MAX_SPARK_POINTS);
+                        if (sparkCharts[gate.id] && (!bfLiveBuffers[gate.id] || bfLiveBuffers[gate.id].data.length === 0)) {
+                            sparkCharts[gate.id].updateSeries([{ data: plotData }]);
+                        }
+                        if (latestBfValues[gate.id] === undefined && lastRow[gate.id] !== undefined) {
+                            latestBfValues[gate.id] = parseFloat(lastRow[gate.id]) || 0;
+                        }
+                    });
+                }
             }
         } catch(e) { console.error("Fetch BF history error", e); }
     }
@@ -838,7 +953,11 @@
       const baseInfo = DEVICE_LIST.find(d => d.id === baseId), topInfo = DEVICE_LIST.find(d => d.id === activeNodeTop);
 
       document.getElementById('modal-title').innerText = baseInfo.label;
-      document.getElementById('modal-temp-bar').style.display = 'flex'; document.getElementById('modal-sound-box').style.display = 'flex';
+      document.getElementById('modal-temp-bar').style.display = 'flex';
+      document.getElementById('modal-temp-box').style.display = 'flex';
+      document.getElementById('modal-sound-box').style.display = 'flex';
+      document.getElementById('modal-bf-cur-box').style.display = 'none';
+      document.getElementById('modal-bf-min-box').style.display = 'none';
       document.getElementById('modal-downsample-info').style.display = 'none';
       document.getElementById('btn-live').style.display = 'none';
       document.getElementById('chartModal').classList.add('show'); isModalOpen = true;
@@ -871,8 +990,23 @@
 
     function openGateModal(gateId, title, color) {
       currentModalType = 'bf'; activeGateKey = gateId; activeGateTitle = title; activeGateColor = color; document.body.setAttribute('data-modal', 'bf');
-      document.getElementById('modal-title').innerText = title; document.getElementById('modal-temp-bar').style.display = 'none';
-      document.getElementById('btn-live').style.display = 'inline-block'; document.getElementById('vibChartTop').style.display = 'none'; document.getElementById('soundChart').style.display = 'none';
+      document.getElementById('modal-title').innerText = `${title} (Purge Air Pressure)`;
+      
+      // เปิดแถบสถิติสำหรับ Bag Filter
+      document.getElementById('modal-temp-bar').style.display = 'flex';
+      document.getElementById('modal-temp-box').style.display = 'none';
+      document.getElementById('modal-sound-box').style.display = 'none';
+      document.getElementById('modal-bf-cur-box').style.display = 'flex';
+      document.getElementById('modal-bf-min-box').style.display = 'flex';
+      document.getElementById('modal-downsample-info').style.display = 'none';
+
+      const curVal = latestBfValues[gateId];
+      document.getElementById('modal-bf-cur').innerText = curVal !== undefined ? `${curVal.toFixed(2)} Bar` : '-- Bar';
+      document.getElementById('modal-bf-min').innerText = '-- Bar';
+
+      document.getElementById('btn-live').style.display = 'inline-block';
+      document.getElementById('vibChartTop').style.display = 'none';
+      document.getElementById('soundChart').style.display = 'none';
       document.getElementById('chartModal').classList.add('show'); isModalOpen = true;
 
       if(myChart) { myChart.destroy(); myChart = null; }
@@ -880,21 +1014,33 @@
       if(myChartSound) { myChartSound.destroy(); myChartSound = null; }
 
       setTimeout(async () => {
-        myChart = new ApexCharts(document.getElementById('vibChart'), getDetailedChartOptions(title, color, 'Bar'));
+        myChart = new ApexCharts(document.getElementById('vibChart'), getDetailedChartOptions(`${title} แรงดันลม Purge`, color, 'Bar'));
         await myChart.render();
         if (bfLiveBuffers[activeGateKey] && bfLiveBuffers[activeGateKey].data.length > 0) {
           switchToLiveMode();
         } else {
-          loadDataByDuration(1);
+          loadDataByDuration(currentDurationHours || 6);
         }
       }, 100);
     }
 
     function switchToLiveMode() {
       isLiveMode = true; setActiveFilterButton('btn-live');
+      document.getElementById('modal-downsample-info').style.display = 'none';
+
       if (activeGateKey && bfLiveBuffers[activeGateKey] && myChart) {
         const curBuf = bfLiveBuffers[activeGateKey];
-        myChart.updateOptions({ xaxis: { categories: curBuf.labels }, series: [{ name: 'Pressure', data: curBuf.data }] });
+        const minVal = curBuf.data.length > 0 ? Math.min(...curBuf.data) : 0;
+        const minEl = document.getElementById('modal-bf-min');
+        minEl.innerText = curBuf.data.length > 0 ? `${minVal.toFixed(2)} Bar` : '-- Bar';
+        minEl.style.color = minVal < 4 ? '#ef4444' : 'var(--text-main)';
+
+        myChart.updateOptions({
+          title: { text: `${activeGateTitle} แรงดันลม Purge (Live MQTT)` },
+          xaxis: { categories: curBuf.labels },
+          yaxis: buildYAxisConfig('Bar', curBuf.data),
+          series: [{ name: 'Purge Pressure', data: curBuf.data }]
+        });
       }
     }
 
@@ -904,21 +1050,86 @@
         fetchVibData(activeNodeBase, hours, myChart, true);
         if (activeNodeTop && DEVICE_LIST.find(d => d.id === activeNodeTop)) fetchVibData(activeNodeTop, hours, myChartTop, false);
       } else if (currentModalType === 'bf' && myChart) {
-        const slicedHistory = bfHistory.slice(-hours * 10);
-        const rawRecords = slicedHistory.map(r => ({
-          label: dayjs(r.Timestamp).format(hours >= 24 ? 'DD/MM HH:mm' : 'HH:mm'),
-          value: parseFloat(r[activeGateKey]) || 0
-        }));
-
-        const sampled = downsampleSeries(rawRecords, MAX_CHART_POINTS, 'min');
-        const subTitle = sampled.isDownsampled ? ` (ย่อจาก ${sampled.originalCount.toLocaleString()} เหลือ ${sampled.values.length} จุด)` : '';
-
-        myChart.updateOptions({
-          title: { text: activeGateTitle + subTitle },
-          xaxis: { categories: sampled.labels },
-          series: [{ name: 'Pressure', data: sampled.values }]
-        });
+        renderBFHistoryChart(hours);
       }
+    }
+
+    // ฟังก์ชันกรองข้อมูลย้อนหลังตามเวลาจริงและทำ Min-Max Downsampling สำหรับลม Purge
+    function renderBFHistoryChart(hours) {
+      if (!bfHistory || bfHistory.length === 0) {
+        myChart.updateOptions({
+          xaxis: { categories: [] },
+          series: [{ name: 'Purge Pressure', data: [] }],
+          noData: { text: 'กำลังโหลดข้อมูลประวัติจาก Google Sheets...' }
+        });
+        return;
+      }
+
+      const timeFormat = hours >= 24 ? 'DD/MM HH:mm' : 'HH:mm:ss';
+      const validTimestamps = bfHistory.filter(r => r._epochMs !== null);
+      let filteredRows = [];
+
+      if (validTimestamps.length > 0) {
+        // ยึดเวลาล่าสุดของข้อมูลใน Sheet เป็นจุดอ้างอิง ป้องกันปัญหานาฬิกาเครื่องคอมเพี้ยน
+        const latestSheetTime = validTimestamps[validTimestamps.length - 1]._epochMs;
+        const cutoffTime = latestSheetTime - (hours * 60 * 60 * 1000);
+        filteredRows = validTimestamps.filter(r => r._epochMs >= cutoffTime);
+      } else {
+        // กรณีรูปแบบวันที่ใน Sheet แปลกจนแปลงไม่ได้ ให้คำนวณจำนวนแถวแบบเผื่อ 60 จุดต่อชั่วโมง
+        filteredRows = bfHistory.slice(-hours * 60);
+      }
+
+      const rawRecords = [];
+      let overallMin = null;
+      let latestVal = null;
+
+      filteredRows.forEach(r => {
+        const rawP = parseFloat(r[activeGateKey]);
+        if (isNaN(rawP)) return;
+
+        const labelStr = r._epochMs ? dayjs(r._epochMs).format(timeFormat) : String(r.Timestamp || '');
+        rawRecords.push({ label: labelStr, value: rawP });
+
+        if (overallMin === null || rawP < overallMin) overallMin = rawP;
+        latestVal = rawP;
+      });
+
+      // ใช้โหมด 'minmax' เพื่อเก็บทั้งจังหวะลมตกตอนโซลินอยด์ยิง Purge และจังหวะปั๊มลมอัดกลับ
+      const sampled = downsampleSeries(rawRecords, MAX_CHART_POINTS, 'minmax');
+
+      // อัปเดตตัวเลขสรุปด้านบน Modal
+      if (latestBfValues[activeGateKey] === undefined && latestVal !== null) {
+        document.getElementById('modal-bf-cur').innerText = `${latestVal.toFixed(2)} Bar`;
+      }
+      const minEl = document.getElementById('modal-bf-min');
+      if (overallMin !== null) {
+        minEl.innerText = `${overallMin.toFixed(2)} Bar`;
+        minEl.style.color = overallMin < 4 ? '#ef4444' : 'var(--text-main)';
+      } else {
+        minEl.innerText = '-- Bar';
+        minEl.style.color = 'var(--text-main)';
+      }
+
+      // แสดงป้ายแจ้งเตือนเมื่อทำ Downsampling
+      const dsBadge = document.getElementById('modal-downsample-info');
+      const dsText = document.getElementById('downsample-text');
+      if (sampled.isDownsampled) {
+        dsBadge.style.display = 'flex';
+        dsBadge.style.color = 'var(--bf-primary)';
+        dsText.innerText = `ล็อกค่า Purge (Min-Max): แสดง ${sampled.values.length} จุด (จาก ${sampled.originalCount.toLocaleString()} จุด)`;
+      } else {
+        dsBadge.style.display = 'none';
+      }
+
+      const subTitle = sampled.isDownsampled ? ` (ย่อจาก ${sampled.originalCount.toLocaleString()} เหลือ ${sampled.values.length} จุด)` : '';
+
+      myChart.updateOptions({
+        title: { text: `${activeGateTitle} แรงดันลม Purge${subTitle}` },
+        xaxis: { categories: sampled.labels },
+        yaxis: buildYAxisConfig('Bar', sampled.values),
+        series: [{ name: 'Purge Pressure', data: sampled.values }],
+        noData: { text: sampled.values.length === 0 ? 'ไม่พบข้อมูลในช่วงเวลานี้' : 'กำลังโหลดข้อมูล...' }
+      });
     }
 
     function fetchVibData(nodeId, hours, chartInstance, isBaseNode = false) {
@@ -958,7 +1169,6 @@
           if (chartInstance) {
             chartInstance.updateOptions({
               xaxis: { categories: sampledVib.labels },
-              // อัปเดตแกน Y ให้มีเพดานขั้นต่ำ 10 mm/s และขยายอัตโนมัติถ้าข้อมูลสูงกว่า 10 mm/s
               yaxis: buildYAxisConfig('mm/s', sampledVib.values),
               series: [{ name: 'Vibration (Peak)', data: sampledVib.values }],
               noData: { text: sampledVib.values.length === 0 ? 'ไม่พบข้อมูลในช่วงเวลานี้' : 'กำลังโหลดข้อมูล...' }
@@ -973,6 +1183,7 @@
             const dsText = document.getElementById('downsample-text');
             if (sampledVib.isDownsampled) {
               dsBadge.style.display = 'flex';
+              dsBadge.style.color = 'var(--primary)';
               dsText.innerText = `ล็อกค่า Peak: แสดง ${sampledVib.values.length} จุด (จาก ${sampledVib.originalCount.toLocaleString()} จุด)`;
             } else {
               dsBadge.style.display = 'none';
