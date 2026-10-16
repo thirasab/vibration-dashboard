@@ -376,7 +376,7 @@
     let latestBfValues = {};
 
     /* ==========================================
-       3. ตัวแปร Global & ตั้งค่าเพดานกราฟ / Alarm
+       3. ตัวแปร Global & ตั้งค่าเพดานกราฟ / Alarm / ACK
        ========================================== */
     const OFFLINE_TIMEOUT = 10 * 60 * 1000;
     const MAX_CHART_POINTS = 300; 
@@ -561,21 +561,7 @@
       } else if (yUnit === 'Bar') {
         baseYAxis.min = 0;
         const calculatedMax = maxDataVal > MIN_BF_Y_HIGH ? Math.ceil(maxDataVal * 1.1) : MIN_BF_Y_HIGH;
-        baseYAxis.max = Math.max(calculatedMax, bfAlarmLimit * 1.3);
-
-        // ผูกค่า annotations เข้ากับแกน Y เสมอสำหรับกราฟแรงดันลม Purge
-        baseYAxis.annotations = {
-          yaxis: [{
-            y: bfAlarmLimit,
-            borderColor: '#ef4444',
-            strokeDashArray: 4,
-            label: {
-              borderColor: '#ef4444',
-              style: { color: '#ffffff', background: '#ef4444', fontFamily: 'Prompt', fontSize: '11px' },
-              text: `BF Limit: ${bfAlarmLimit.toFixed(1)} Bar`
-            }
-          }]
-        };
+        baseYAxis.max = Math.max(calculatedMax, bfAlarmLimit * 1.2);
       }
 
       return baseYAxis;
@@ -583,7 +569,8 @@
 
     function getDetailedChartOptions(title, color, yUnit = 'mm/s') {
       const isDark = document.body.classList.contains('dark-mode');
-      return {
+      
+      const chartOptions = {
         series: [{ name: yUnit, data: [] }],
         noData: {
           text: 'กำลังโหลดข้อมูล...',
@@ -606,6 +593,24 @@
         xaxis: { type: 'category', categories: [], tickAmount: 10, labels: { rotate: -30, hideOverlappingLabels: true, style: { colors: isDark ? '#8c96a5' : '#6b7280', fontSize: '11px', fontFamily: 'Inter' } } },
         yaxis: buildYAxisConfig(yUnit, [])
       };
+
+      // ย้าย Annotations มาไว้ระดับ Root ของ Chart Options เพื่อให้แสดงผลตั้งแต่จังหวะเปิด Modal ทันที
+      if (yUnit === 'Bar') {
+        chartOptions.annotations = {
+          yaxis: [{
+            y: bfAlarmLimit,
+            borderColor: '#ef4444',
+            strokeDashArray: 4,
+            label: {
+              borderColor: '#ef4444',
+              style: { color: '#ffffff', background: '#ef4444', fontFamily: 'Prompt', fontSize: '11px' },
+              text: `BF Limit: ${bfAlarmLimit.toFixed(1)} Bar`
+            }
+          }]
+        };
+      }
+
+      return chartOptions;
     }
 
     /* ==========================================
@@ -845,7 +850,7 @@
                 if (!dev.id.endsWith('TOP')) document.getElementById(`time-${baseId}`).innerHTML = `<i class="fa-regular fa-clock"></i> ` + dayjs(epochMs).format('HH:mm:ss');
                 
                 alertStatus[dev.id] = (currentVal >= alarmLimit);
-                let topId = baseId + 'TOP'; let hasAlarm = alertStatus[baseId] === true || alertStatus[topId] === true;
+                let topId = baseId + 'TOP'; let hasAlarm = alertStatus[dev.id] === true || alertStatus[topId] === true;
                 const card = document.getElementById(`card-${baseId}`);
                 if (card) { if (hasAlarm) card.classList.add('alert-danger'); else card.classList.remove('alert-danger'); }
                 triggerAlarmLogic();
@@ -934,6 +939,18 @@
                     myChart.updateOptions({
                       xaxis: { categories: curBuf.labels },
                       yaxis: buildYAxisConfig('Bar', curBuf.data),
+                      annotations: {
+                        yaxis: [{
+                          y: bfAlarmLimit,
+                          borderColor: '#ef4444',
+                          strokeDashArray: 4,
+                          label: {
+                            borderColor: '#ef4444',
+                            style: { color: '#ffffff', background: '#ef4444', fontFamily: 'Prompt', fontSize: '11px' },
+                            text: `BF Limit: ${bfAlarmLimit.toFixed(1)} Bar`
+                          }
+                        }]
+                      },
                       series: [{ name: 'Purge Pressure', data: curBuf.data }]
                     }, false, false);
                   }
@@ -1070,6 +1087,18 @@
           title: { text: `${activeGateTitle} แรงดันลม Purge (Live MQTT)` },
           xaxis: { categories: curBuf.labels },
           yaxis: buildYAxisConfig('Bar', curBuf.data),
+          annotations: {
+            yaxis: [{
+              y: bfAlarmLimit,
+              borderColor: '#ef4444',
+              strokeDashArray: 4,
+              label: {
+                borderColor: '#ef4444',
+                style: { color: '#ffffff', background: '#ef4444', fontFamily: 'Prompt', fontSize: '11px' },
+                text: `BF Limit: ${bfAlarmLimit.toFixed(1)} Bar`
+              }
+            }]
+          },
           series: [{ name: 'Purge Pressure', data: curBuf.data }]
         });
       }
@@ -1152,6 +1181,18 @@
         title: { text: `${activeGateTitle} แรงดันลม Purge${subTitle}` },
         xaxis: { categories: sampled.labels },
         yaxis: buildYAxisConfig('Bar', sampled.values),
+        annotations: {
+          yaxis: [{
+            y: bfAlarmLimit,
+            borderColor: '#ef4444',
+            strokeDashArray: 4,
+            label: {
+              borderColor: '#ef4444',
+              style: { color: '#ffffff', background: '#ef4444', fontFamily: 'Prompt', fontSize: '11px' },
+              text: `BF Limit: ${bfAlarmLimit.toFixed(1)} Bar`
+            }
+          }]
+        },
         series: [{ name: 'Purge Pressure', data: sampled.values }],
         noData: { text: sampled.values.length === 0 ? 'ไม่พบข้อมูลในช่วงเวลานี้' : 'กำลังโหลดข้อมูล...' }
       });
