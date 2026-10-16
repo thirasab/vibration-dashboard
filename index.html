@@ -211,8 +211,13 @@
         </div>
       </div>
       <div class="header-actions">
+        <!-- ปุ่มตั้งค่า Alarm ความสั่นสะเทือน (แสดงเฉพาะหน้า Vibration) -->
         <button class="btn-action-toggle" onclick="setAlarmLimit()" style="background: var(--accent); color: white;" id="alarm-btn">
           <i class="fa-solid fa-triangle-exclamation"></i> Alarm: <span id="alarm-display">40</span>
+        </button>
+        <!-- ปุ่มตั้งค่าเกณฑ์แรงดันลม Purge ต่ำ (แสดงเฉพาะหน้า Bag Filter) -->
+        <button class="btn-action-toggle" onclick="setBfAlarmLimit()" style="background: var(--bf-primary); color: #0c1017; display: none;" id="bf-alarm-btn">
+          <i class="fa-solid fa-gauge"></i> BF Limit: <span id="bf-alarm-display">4.0</span>
         </button>
         <button class="btn-action-toggle" id="auto-toggle" onclick="toggleAutoMode()" style="background: var(--primary); color: white;">
           <i class="fa-solid fa-rotate"></i> <span>Auto (10s)</span>
@@ -263,7 +268,7 @@
         </div>
       </div>
 
-      <!-- แถบสถิติ (รองรับทั้งโหมด Vibration และโหมด Bag Filter Purge Pressure) -->
+      <!-- แถบสถิติ -->
       <div class="sensor-stats-bar" id="modal-temp-bar">
         <div class="stat-item" id="modal-temp-box">
           <i class="fa-solid fa-temperature-half" style="color: #ef4444;"></i> 
@@ -376,10 +381,11 @@
     const MAX_CHART_POINTS = 300; 
     const MIN_VIB_Y_HIGH = 10;     // เพดานกราฟความสั่นสะเทือนต่ำสุดที่ 10 mm/s
     const MIN_BF_Y_HIGH = 8;       // เพดานกราฟแรงดันลม Purge เริ่มต้นที่ 8 Bar
-    const BF_LOW_ALARM_LIMIT = 4.0; // เกณฑ์แจ้งเตือนเมื่อแรงดันลม Purge ต่ำกว่า 4.0 Bar
 
     let lastUpdateTimes = {};
     let alarmLimit = Math.max(MIN_VIB_Y_HIGH, parseFloat(localStorage.getItem('vibAlarmLimit')) || 40.0);
+    let bfAlarmLimit = parseFloat(localStorage.getItem('bfAlarmLimit')) || 4.0; // เกณฑ์แรงดันต่ำ Bag Filter ตั้งค่าได้จากหน้าเว็บ
+    
     let latestValues = {}; 
     let alertStatus = {}; 
     let currentTabGroup = 'cm10-11'; 
@@ -621,20 +627,20 @@
       document.querySelectorAll('.main-tab-btn').forEach(btn => {
         if(btn.dataset.group === group) btn.classList.add('active'); else btn.classList.remove('active');
       });
-      const devContainer = document.getElementById('devices-container'), bfContainer = document.getElementById('bf-container'), headerIcon = document.getElementById('header-icon'), headerText = document.getElementById('header-text'), alarmBtn = document.getElementById('alarm-btn');
+      const devContainer = document.getElementById('devices-container'), bfContainer = document.getElementById('bf-container'), headerIcon = document.getElementById('header-icon'), headerText = document.getElementById('header-text'), alarmBtn = document.getElementById('alarm-btn'), bfAlarmBtn = document.getElementById('bf-alarm-btn');
 
       if (group === 'gate-bf') {
         devContainer.style.display = 'none'; bfContainer.style.display = 'flex';
         headerIcon.className = "fa-solid fa-wind"; headerIcon.style.color = "var(--bf-primary)";
-        headerText.innerText = "CM 10-11 Bag Filter"; alarmBtn.style.display = 'none'; 
+        headerText.innerText = "CM 10-11 Bag Filter"; 
+        if(alarmBtn) alarmBtn.style.display = 'none'; 
+        if(bfAlarmBtn) bfAlarmBtn.style.display = 'flex';
       } else {
         devContainer.style.display = 'grid'; bfContainer.style.display = 'none';
         headerIcon.className = "fa-solid fa-wave-square"; headerIcon.style.color = "var(--primary)";
-        headerText.innerText = "มอนิเตอร์ความสั่นสะเทือน & เสียง"; alarmBtn.style.display = 'flex';
-        DEVICE_LIST.filter(d => !d.id.endsWith('TOP')).forEach(dev => {
-          const card = document.getElementById(`card-${dev.id}`);
-          if(card) card.style.display = (dev.group === group) ? 'flex' : 'none';
-        });
+        headerText.innerText = "มอนิเตอร์ความสั่นสะเทือน & เสียง"; 
+        if(alarmBtn) alarmBtn.style.display = 'flex';
+        if(bfAlarmBtn) bfAlarmBtn.style.display = 'none';
       }
       setTimeout(() => window.dispatchEvent(new Event('resize')), 100);
     }
@@ -656,6 +662,7 @@
        ========================================== */
     function initializeDashboard() {
       document.getElementById('alarm-display').innerText = alarmLimit;
+      document.getElementById('bf-alarm-display').innerText = bfAlarmLimit;
       const devContainer = document.getElementById('devices-container');
       devContainer.innerHTML = ''; 
       
@@ -705,7 +712,7 @@
       const gateContainer = document.getElementById('gates-container');
       gateContainer.innerHTML = '';
       gatesConfig.forEach((gate) => {
-          alertStatus[gate.id] = false; // ตั้งค่าเริ่มต้นของ Alarm ลม Purge
+          alertStatus[gate.id] = false;
           gateContainer.innerHTML += `
               <div class="status-card" id="card-${gate.id}" onclick="openGateModal('${gate.id}', 'PS. ${gate.name}', '${gate.color}')">
                 <div class="card-info">
@@ -863,7 +870,6 @@
             
             gatesConfig.forEach((gate, idx) => {
                 const rawVal = data[`p${idx+1}`];
-                // ป้องกันกรณีค่าไม่ได้ส่งมาแล้วถูกปัดเป็น 0.0 จนร้องเตือนผิดพลาด
                 if (rawVal === undefined || rawVal === null || isNaN(parseFloat(rawVal))) return;
 
                 const val = parseFloat(rawVal);
@@ -874,8 +880,7 @@
                 if (valEl) valEl.innerHTML = val.toFixed(2) + " <span>Bar</span>";
                 const card = document.getElementById(`card-${gate.id}`), statusText = document.getElementById(`status-${gate.id}`);
                 
-                // เช็คแรงดันลม Purge ต่ำกว่า 4.0 Bar เพื่อแจ้งเตือนทั้งสีการ์ดและเสียงไซเรน
-                const isLowPressure = (val < BF_LOW_ALARM_LIMIT);
+                const isLowPressure = (val < bfAlarmLimit);
                 alertStatus[gate.id] = isLowPressure;
 
                 if (isLowPressure) {
@@ -892,7 +897,6 @@
                 if (sparkCharts[gate.id]) sparkCharts[gate.id].updateSeries([{ data: bfLiveBuffers[gate.id].data.slice(-MAX_SPARK_POINTS) }]);
             });
 
-            // สั่งตรวจสอบและเล่นเสียงไซเรนทันทีเมื่อมีจุดใดจุดหนึ่งต่ำกว่า 4 Bar
             triggerAlarmLogic();
 
             if (isModalOpen && currentModalType === 'bf' && activeGateKey) {
@@ -906,7 +910,7 @@
                     const minVal = curBuf.data.length > 0 ? Math.min(...curBuf.data) : 0;
                     const minEl = document.getElementById('modal-bf-min');
                     minEl.innerText = `${minVal.toFixed(2)} Bar`;
-                    minEl.style.color = minVal < BF_LOW_ALARM_LIMIT ? '#ef4444' : 'var(--text-main)';
+                    minEl.style.color = minVal < bfAlarmLimit ? '#ef4444' : 'var(--text-main)';
 
                     myChart.updateOptions({
                       xaxis: { categories: curBuf.labels },
@@ -1041,7 +1045,7 @@
         const minVal = curBuf.data.length > 0 ? Math.min(...curBuf.data) : 0;
         const minEl = document.getElementById('modal-bf-min');
         minEl.innerText = curBuf.data.length > 0 ? `${minVal.toFixed(2)} Bar` : '-- Bar';
-        minEl.style.color = minVal < BF_LOW_ALARM_LIMIT ? '#ef4444' : 'var(--text-main)';
+        minEl.style.color = minVal < bfAlarmLimit ? '#ef4444' : 'var(--text-main)';
 
         myChart.updateOptions({
           title: { text: `${activeGateTitle} แรงดันลม Purge (Live MQTT)` },
@@ -1107,7 +1111,7 @@
       const minEl = document.getElementById('modal-bf-min');
       if (overallMin !== null) {
         minEl.innerText = `${overallMin.toFixed(2)} Bar`;
-        minEl.style.color = overallMin < BF_LOW_ALARM_LIMIT ? '#ef4444' : 'var(--text-main)';
+        minEl.style.color = overallMin < bfAlarmLimit ? '#ef4444' : 'var(--text-main)';
       } else {
         minEl.innerText = '-- Bar';
         minEl.style.color = 'var(--text-main)';
@@ -1208,7 +1212,7 @@
     function closeModalOutside(e) { if (e.target.classList.contains('modal-overlay')) closeModal(); }
 
     /* ==========================================
-       9. System Utilities & Alarm Logic (รวม Vib + Bag Filter)
+       9. System Utilities & Alarm Logic
        ========================================== */
     function setAlarmLimit() {
       const val = prompt("ตั้งค่าขีดจำกัดแจ้งเตือน (Alarm Limit mm/s - ขั้นต่ำ 10 mm/s):", alarmLimit);
@@ -1225,7 +1229,16 @@
       }
     }
 
-    // อัปเดตสถานะกะพริบสีแดงที่ปุ่ม Tab ด้านบน เมื่อมี Alarm ซ่อนอยู่ในหน้านั้น
+    function setBfAlarmLimit() {
+      const val = prompt("ตั้งค่าเกณฑ์แรงดันลม Purge ต่ำสุด (Low Pressure Limit Bar):", bfAlarmLimit);
+      if (val !== null && !isNaN(parseFloat(val))) {
+        bfAlarmLimit = parseFloat(val);
+        localStorage.setItem('bfAlarmLimit', bfAlarmLimit);
+        document.getElementById('bf-alarm-display').innerText = bfAlarmLimit;
+        checkOfflineStatus(); // สั่งตรวจสอบสถานะการแจ้งเตือนทันทีด้วยเกณฑ์ใหม่
+      }
+    }
+
     function updateTabAlarmBadges() {
       const groupHasAlarm = {
         'cm10-11': false,
@@ -1267,7 +1280,6 @@
         btn.innerHTML = '<i class="fa-solid fa-bell"></i> เปิดเสียง';
         btn.style.background = '#ef4444';
         btn.style.color = '#ffffff';
-        // ปลดล็อก Browser Autoplay ทันทีที่ผู้ใช้คลิกปุ่มเปิดเสียง
         const hasAnyAlarm = Object.values(alertStatus).some(status => status === true);
         if (hasAnyAlarm) {
           alarmSound.play().catch(() => {});
