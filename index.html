@@ -17,7 +17,7 @@
   <!-- MQTT (Bag Filter) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js"></script>
 
-  <!-- Charts & Time (เปลี่ยนเป็น cdnjs และล็อกเวอร์ชันเสถียร ป้องกันปัญหาถูกบล็อก/อัปเดตพัง) -->
+  <!-- Charts & Time -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/apexcharts/3.44.0/apexcharts.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/dayjs.min.js"></script>
 
@@ -264,6 +264,9 @@
           <span>ระดับเสียง:</span>
           <span class="val" id="modal-sound">-- dB</span>
         </div>
+        <div class="stat-item" id="modal-downsample-info" style="margin-left: auto; font-size: 12px; color: var(--primary); display: none;">
+          <i class="fa-solid fa-bolt"></i> <span id="downsample-text">Peak Mode</span>
+        </div>
       </div>
 
       <div class="modal-body-scroll">
@@ -345,9 +348,10 @@
     let bfHistory = []; 
 
     /* ==========================================
-       3. ตัวแปร Global & Timestamps
+       3. ตัวแปร Global & ตั้งค่า Downsampling
        ========================================== */
     const OFFLINE_TIMEOUT = 10 * 60 * 1000;
+    const MAX_CHART_POINTS = 300; // จำกัดจำนวนจุดสูงสุดบนกราฟไม่ให้เบราว์เซอร์ค้าง
     let lastUpdateTimes = {};
 
     let alarmLimit = parseFloat(localStorage.getItem('vibAlarmLimit')) || 40.0;
@@ -392,7 +396,68 @@
         tooltip: { fixed: { enabled: false }, x: { show: false }, y: { title: { formatter: () => '' } }, marker: { show: false } }
     };
 
-    // แก้ไข: เพิ่ม series: [] และ noData เริ่มต้น ป้องกัน ApexCharts แครชในบางเบราว์เซอร์
+    /* ==========================================
+       ฟังก์ชัน Downsampling (รักษาค่า Peak / Min)
+       ========================================== */
+    /**
+     * ย่อข้อมูลโดยแบ่งเป็นช่วง (Bucket) และดึงค่าสูงสุด (mode='max') หรือต่ำสุด (mode='min')
+     * @param {Array} records - อาร์เรย์ของ { label: 'เวลา', value: ตัวเลข }
+     * @param {Number} maxPoints - จำนวนจุดสูงสุดที่ต้องการแสดงบนกราฟ
+     * @param {String} mode - 'max' สำหรับ Vibration/Sound, 'min' สำหรับ Bag Filter Pressure
+     */
+    function downsampleSeries(records, maxPoints = MAX_CHART_POINTS, mode = 'max') {
+      const total = records.length;
+      if (total <= maxPoints) {
+        return {
+          labels: records.map(r => r.label),
+          values: records.map(r => r.value),
+          isDownsampled: false,
+          originalCount: total
+        };
+      }
+
+      const sampledLabels = [];
+      const sampledValues = [];
+      const bucketSize = total / maxPoints;
+
+      for (let i = 0; i < maxPoints; i++) {
+        const startIdx = Math.floor(i * bucketSize);
+        const endIdx = Math.min(Math.floor((i + 1) * bucketSize), total);
+        
+        let selectedRecord = null;
+
+        for (let j = startIdx; j < endIdx; j++) {
+          const item = records[j];
+          if (item.value === null || item.value === undefined || isNaN(item.value)) continue;
+
+          if (selectedRecord === null) {
+            selectedRecord = item;
+          } else if (mode === 'max' && item.value > selectedRecord.value) {
+            selectedRecord = item; // ล็อกค่าสูงสุดสำหรับ Vibration & Sound
+          } else if (mode === 'min' && item.value < selectedRecord.value) {
+            selectedRecord = item; // ล็อกค่าต่ำสุดสำหรับแรงดัน Bag Filter
+          }
+        }
+
+        // กรณีทั้งกลุ่มเป็นค่าว่างทั้งหมด ให้ดึงตัวแรกของกลุ่มมาใส่เพื่อรักษาแกนเวลา
+        if (selectedRecord === null && startIdx < total) {
+          selectedRecord = records[startIdx];
+        }
+
+        if (selectedRecord) {
+          sampledLabels.push(selectedRecord.label);
+          sampledValues.push(selectedRecord.value);
+        }
+      }
+
+      return {
+        labels: sampledLabels,
+        values: sampledValues,
+        isDownsampled: true,
+        originalCount: total
+      };
+    }
+
     function getDetailedChartOptions(title, color, yUnit = 'mm/s') {
       const isDark = document.body.classList.contains('dark-mode');
       return {
@@ -411,11 +476,13 @@
             }, autoSelected: 'pan'
           }, animations: { enabled: false }
         },
-        colors: [color], stroke: { curve: 'smooth', width: 2.5 }, markers: { size: 2, hover: { size: 6 } },
+        // ปิดการวาดจุดกลมถาวร (size: 0) ช่วยลดภาระ DOM ตอนข้อมูลเยอะ แต่ยังแสดงจุดเมื่อชี้เมาส์
+        colors: [color], stroke: { curve: 'smooth', width: 2 }, markers: { size: 0, hover: { size: 5 } },
         grid: { borderColor: isDark ? '#222833' : '#e5e7eb', strokeDashArray: 4, xaxis: { lines: { show: true } }, yaxis: { lines: { show: true } } },
         title: { text: title, align: 'left', style: { fontSize: '13px', fontFamily: 'Prompt', color: isDark ? '#f9fafb' : '#111827' } },
-        tooltip: { enabled: true, shared: true, intersect: false, x: { format: 'HH:mm:ss' }, y: { formatter: (val) => `${val !== undefined && val !== null ? Number(val).toFixed(2) : '0.00'} ${yUnit}` } },
-        xaxis: { type: 'category', categories: [], labels: { rotate: -30, style: { colors: isDark ? '#8c96a5' : '#6b7280', fontSize: '11px', fontFamily: 'Inter' } } },
+        tooltip: { enabled: true, shared: true, intersect: false, y: { formatter: (val) => `${val !== undefined && val !== null ? Number(val).toFixed(2) : '0.00'} ${yUnit}` } },
+        // กำหนด tickAmount: 10 เพื่อไม่ให้ป้ายเวลาแกน X ซ้อนทับกันจนเบราว์เซอร์ค้าง
+        xaxis: { type: 'category', categories: [], tickAmount: 10, labels: { rotate: -30, hideOverlappingLabels: true, style: { colors: isDark ? '#8c96a5' : '#6b7280', fontSize: '11px', fontFamily: 'Inter' } } },
         yaxis: { labels: { formatter: (val) => val !== undefined && val !== null ? Number(val).toFixed(2) : '0.00', style: { colors: isDark ? '#8c96a5' : '#6b7280', fontFamily: 'Inter' } } }
       };
     }
@@ -561,7 +628,6 @@
           `;
       });
 
-      // Render Sparklines ตอนที่การ์ดแสดงผลอยู่เพื่อไม่ให้ขนาดเป็น 0px
       bases.forEach(baseDev => {
         const topDev = DEVICE_LIST.find(d => d.id === baseDev.id + 'TOP');
         if (topDev) {
@@ -604,7 +670,6 @@
         const dot = document.getElementById(dotId);
         const valEl = document.getElementById(valId);
         const lastTime = lastUpdateTimes[idKey];
-        // ใช้ Math.abs เผื่อนาฬิกาคอมบางเครื่องเดินช้าหรือเร็วกว่า ESP32 เล็กน้อย
         const isOnline = lastTime && (Math.abs(now - lastTime) <= OFFLINE_TIMEOUT);
 
         if (dot) {
@@ -753,7 +818,7 @@
     }
 
     /* ==========================================
-       8. Modal & Multi-Chart Functions (แก้บั๊กกราฟไม่ขึ้น)
+       8. Modal & Multi-Chart Functions + Downsampling
        ========================================== */
     function openVibModal(baseId) {
       currentModalType = 'vib'; activeNodeBase = baseId; activeNodeTop = baseId + 'TOP'; document.body.setAttribute('data-modal', 'vib');
@@ -761,6 +826,7 @@
 
       document.getElementById('modal-title').innerText = baseInfo.label;
       document.getElementById('modal-temp-bar').style.display = 'flex'; document.getElementById('modal-sound-box').style.display = 'flex';
+      document.getElementById('modal-downsample-info').style.display = 'none';
       document.getElementById('btn-live').style.display = 'none';
       document.getElementById('chartModal').classList.add('show'); isModalOpen = true;
 
@@ -773,7 +839,6 @@
       chartTopEl.style.display = topInfo ? 'block' : 'none';
       chartSoundEl.style.display = 'block';
 
-      // หน่วงเวลา 100ms ให้ Modal กางออกจนมีความกว้างก่อนสั่งวาดกราฟ
       setTimeout(async () => {
         const renderPromises = [];
         if (topInfo) {
@@ -804,7 +869,6 @@
       setTimeout(async () => {
         myChart = new ApexCharts(document.getElementById('vibChart'), getDetailedChartOptions(title, color, 'Bar'));
         await myChart.render();
-        // ถ้ายังไม่มีข้อมูล Live ใน Buffer แต่มี History ให้โชว์ History ล่าสุดก่อนไม่ให้กราฟโล่ง
         if (bfLiveBuffers[activeGateKey] && bfLiveBuffers[activeGateKey].data.length > 0) {
           switchToLiveMode();
         } else {
@@ -827,45 +891,89 @@
         fetchVibData(activeNodeBase, hours, myChart, true);
         if (activeNodeTop && DEVICE_LIST.find(d => d.id === activeNodeTop)) fetchVibData(activeNodeTop, hours, myChartTop, false);
       } else if (currentModalType === 'bf' && myChart) {
-        const labels = bfHistory.map(r => dayjs(r.Timestamp).format('DD/MM HH:mm')).slice(-hours * 10);
-        const data = bfHistory.map(r => parseFloat(r[activeGateKey]) || 0).slice(-hours * 10);
-        myChart.updateOptions({ xaxis: { categories: labels }, series: [{ name: 'Pressure', data: data }] });
+        // กรองข้อมูล Bag Filter และทำ Min-Preserving Downsampling
+        const slicedHistory = bfHistory.slice(-hours * 10);
+        const rawRecords = slicedHistory.map(r => ({
+          label: dayjs(r.Timestamp).format(hours >= 24 ? 'DD/MM HH:mm' : 'HH:mm'),
+          value: parseFloat(r[activeGateKey]) || 0
+        }));
+
+        const sampled = downsampleSeries(rawRecords, MAX_CHART_POINTS, 'min');
+        const subTitle = sampled.isDownsampled ? ` (ย่อจาก ${sampled.originalCount.toLocaleString()} เหลือ ${sampled.values.length} จุด)` : '';
+
+        myChart.updateOptions({
+          title: { text: activeGateTitle + subTitle },
+          xaxis: { categories: sampled.labels },
+          series: [{ name: 'Pressure', data: sampled.values }]
+        });
       }
     }
 
-    // แก้ไข: ยึดเวลาจากข้อมูลจริงของเซ็นเซอร์ (lastUpdateTimes) แทน Date.now() ป้องกันปัญหาเวลาคอมพิวเตอร์เพี้ยน
     function fetchVibData(nodeId, hours, chartInstance, isBaseNode = false) {
       const referenceTime = lastUpdateTimes[nodeId] || Date.now();
       const startTime = referenceTime - (hours * 60 * 60 * 1000);
+      // ถ้าเลือกดู 1 วันขึ้นไป ให้แสดง วัน/เดือน ร่วมกับเวลา เพื่อไม่ให้สับสนว่าเป็นของวันไหน
+      const timeFormat = hours >= 24 ? 'DD/MM HH:mm' : 'HH:mm:ss';
 
       db.ref(`Vibration_Logs/${nodeId}`).orderByChild('gatewayEpoch').startAt(startTime / 1000).once('value', snap => {
-          const labels = [], values = [], soundValues = []; let lastTemp = null, lastSound = null;
+          const vibRecords = [];
+          const soundRecords = [];
+          let lastTemp = null, lastSound = null;
+
           snap.forEach(child => {
             const val = child.val();
             if (!val) return;
-            const timeLabel = val.gatewayEpoch ? dayjs(val.gatewayEpoch * 1000).format('HH:mm:ss') : '';
-            labels.push(timeLabel);
-            values.push(val.ax !== undefined && val.ax !== null ? parseFloat(val.ax) : 0);
+            const timeLabel = val.gatewayEpoch ? dayjs(val.gatewayEpoch * 1000).format(timeFormat) : '';
+            const vibVal = val.ax !== undefined && val.ax !== null ? parseFloat(val.ax) : 0;
+            vibRecords.push({ label: timeLabel, value: vibVal });
+
             if (val.temp !== undefined && val.temp !== null) lastTemp = parseFloat(val.temp);
-            const sVal = (val.soundMax !== undefined && val.soundMax !== null) ? parseFloat(val.soundMax) : (val.sound !== undefined && val.sound !== null) ? parseFloat(val.sound) : (val.snd !== undefined && val.snd !== null) ? parseFloat(val.snd) : (val.noise !== undefined && val.noise !== null) ? parseFloat(val.noise) : null;
-            if (sVal !== null && !isNaN(sVal)) { soundValues.push(sVal); lastSound = sVal; } else { soundValues.push(null); }
+
+            const sVal = (val.soundMax !== undefined && val.soundMax !== null) ? parseFloat(val.soundMax)
+                       : (val.sound !== undefined && val.sound !== null) ? parseFloat(val.sound)
+                       : (val.snd !== undefined && val.snd !== null) ? parseFloat(val.snd)
+                       : (val.noise !== undefined && val.noise !== null) ? parseFloat(val.noise) : null;
+
+            if (sVal !== null && !isNaN(sVal)) {
+              soundRecords.push({ label: timeLabel, value: sVal });
+              lastSound = sVal;
+            } else {
+              soundRecords.push({ label: timeLabel, value: null });
+            }
           });
+
+          // ทำ Peak-Preserving Downsampling สำหรับ Vibration
+          const sampledVib = downsampleSeries(vibRecords, MAX_CHART_POINTS, 'max');
 
           if (chartInstance) {
             chartInstance.updateOptions({
-              xaxis: { categories: labels },
-              series: [{ name: 'Vibration', data: values }],
-              noData: { text: values.length === 0 ? 'ไม่พบข้อมูลในช่วงเวลานี้' : 'กำลังโหลดข้อมูล...' }
+              xaxis: { categories: sampledVib.labels },
+              series: [{ name: 'Vibration (Peak)', data: sampledVib.values }],
+              noData: { text: sampledVib.values.length === 0 ? 'ไม่พบข้อมูลในช่วงเวลานี้' : 'กำลังโหลดข้อมูล...' }
             });
           }
+
           if (isBaseNode) {
             if (lastTemp !== null && !isNaN(lastTemp)) document.getElementById('modal-temp').innerText = `${lastTemp.toFixed(1)} °C`;
             if (lastSound !== null && !isNaN(lastSound)) document.getElementById('modal-sound').innerText = `${lastSound.toFixed(1)} dB`;
+
+            // แสดงป้ายแจ้งเตือนเมื่อระบบทำ Downsampling
+            const dsBadge = document.getElementById('modal-downsample-info');
+            const dsText = document.getElementById('downsample-text');
+            if (sampledVib.isDownsampled) {
+              dsBadge.style.display = 'flex';
+              dsText.innerText = `ล็อกค่า Peak: แสดง ${sampledVib.values.length} จุด (จาก ${sampledVib.originalCount.toLocaleString()} จุด)`;
+            } else {
+              dsBadge.style.display = 'none';
+            }
+
+            // ทำ Peak-Preserving Downsampling สำหรับ Sound
             if (myChartSound) {
+              const sampledSound = downsampleSeries(soundRecords, MAX_CHART_POINTS, 'max');
               myChartSound.updateOptions({
-                xaxis: { categories: labels },
-                series: [{ name: 'Sound Max', data: soundValues }],
-                noData: { text: soundValues.length === 0 ? 'ไม่พบข้อมูลเสียงในช่วงเวลานี้' : 'กำลังโหลดข้อมูล...' }
+                xaxis: { categories: sampledSound.labels },
+                series: [{ name: 'Sound Max', data: sampledSound.values }],
+                noData: { text: sampledSound.values.length === 0 ? 'ไม่พบข้อมูลเสียงในช่วงเวลานี้' : 'กำลังโหลดข้อมูล...' }
               });
             }
           }
