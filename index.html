@@ -348,13 +348,14 @@
     let bfHistory = []; 
 
     /* ==========================================
-       3. ตัวแปร Global & ตั้งค่า Downsampling
+       3. ตัวแปร Global & ตั้งค่าเพดานกราฟ
        ========================================== */
     const OFFLINE_TIMEOUT = 10 * 60 * 1000;
-    const MAX_CHART_POINTS = 300; // จำกัดจำนวนจุดสูงสุดบนกราฟไม่ให้เบราว์เซอร์ค้าง
-    let lastUpdateTimes = {};
+    const MAX_CHART_POINTS = 300; 
+    const MIN_VIB_Y_HIGH = 10; // เพดานกราฟความสั่นสะเทือนต่ำสุดที่ 10 mm/s
 
-    let alarmLimit = parseFloat(localStorage.getItem('vibAlarmLimit')) || 40.0;
+    let lastUpdateTimes = {};
+    let alarmLimit = Math.max(MIN_VIB_Y_HIGH, parseFloat(localStorage.getItem('vibAlarmLimit')) || 40.0);
     let latestValues = {}; 
     let alertStatus = {}; 
     let currentTabGroup = 'cm10-11'; 
@@ -397,14 +398,8 @@
     };
 
     /* ==========================================
-       ฟังก์ชัน Downsampling (รักษาค่า Peak / Min)
+       ฟังก์ชัน Downsampling & ตั้งค่าแกน Y
        ========================================== */
-    /**
-     * ย่อข้อมูลโดยแบ่งเป็นช่วง (Bucket) และดึงค่าสูงสุด (mode='max') หรือต่ำสุด (mode='min')
-     * @param {Array} records - อาร์เรย์ของ { label: 'เวลา', value: ตัวเลข }
-     * @param {Number} maxPoints - จำนวนจุดสูงสุดที่ต้องการแสดงบนกราฟ
-     * @param {String} mode - 'max' สำหรับ Vibration/Sound, 'min' สำหรับ Bag Filter Pressure
-     */
     function downsampleSeries(records, maxPoints = MAX_CHART_POINTS, mode = 'max') {
       const total = records.length;
       if (total <= maxPoints) {
@@ -433,13 +428,12 @@
           if (selectedRecord === null) {
             selectedRecord = item;
           } else if (mode === 'max' && item.value > selectedRecord.value) {
-            selectedRecord = item; // ล็อกค่าสูงสุดสำหรับ Vibration & Sound
+            selectedRecord = item;
           } else if (mode === 'min' && item.value < selectedRecord.value) {
-            selectedRecord = item; // ล็อกค่าต่ำสุดสำหรับแรงดัน Bag Filter
+            selectedRecord = item;
           }
         }
 
-        // กรณีทั้งกลุ่มเป็นค่าว่างทั้งหมด ให้ดึงตัวแรกของกลุ่มมาใส่เพื่อรักษาแกนเวลา
         if (selectedRecord === null && startIdx < total) {
           selectedRecord = records[startIdx];
         }
@@ -456,6 +450,27 @@
         isDownsampled: true,
         originalCount: total
       };
+    }
+
+    // สร้าง Object ตั้งค่าแกน Y โดยล็อกเพดานขั้นต่ำ 10 mm/s สำหรับกราฟความสั่นสะเทือน
+    function buildYAxisConfig(yUnit = 'mm/s', dataValues = []) {
+      const isDark = document.body.classList.contains('dark-mode');
+      const baseYAxis = {
+        labels: {
+          formatter: (val) => val !== undefined && val !== null ? Number(val).toFixed(2) : '0.00',
+          style: { colors: isDark ? '#8c96a5' : '#6b7280', fontFamily: 'Inter' }
+        }
+      };
+
+      if (yUnit === 'mm/s') {
+        const validNums = dataValues.filter(v => v !== null && v !== undefined && !isNaN(v));
+        const maxDataVal = validNums.length > 0 ? Math.max(...validNums) : 0;
+        // ถ้าค่าสูงสุดไม่เกิน 10 ให้ล็อกเพดานที่ 10 mm/s แต่ถ้าเกิน 10 ให้ขยายเพดานขึ้นอัตโนมัติ
+        baseYAxis.min = 0;
+        baseYAxis.max = maxDataVal > MIN_VIB_Y_HIGH ? Math.ceil(maxDataVal * 1.1) : MIN_VIB_Y_HIGH;
+      }
+
+      return baseYAxis;
     }
 
     function getDetailedChartOptions(title, color, yUnit = 'mm/s') {
@@ -476,14 +491,12 @@
             }, autoSelected: 'pan'
           }, animations: { enabled: false }
         },
-        // ปิดการวาดจุดกลมถาวร (size: 0) ช่วยลดภาระ DOM ตอนข้อมูลเยอะ แต่ยังแสดงจุดเมื่อชี้เมาส์
         colors: [color], stroke: { curve: 'smooth', width: 2 }, markers: { size: 0, hover: { size: 5 } },
         grid: { borderColor: isDark ? '#222833' : '#e5e7eb', strokeDashArray: 4, xaxis: { lines: { show: true } }, yaxis: { lines: { show: true } } },
         title: { text: title, align: 'left', style: { fontSize: '13px', fontFamily: 'Prompt', color: isDark ? '#f9fafb' : '#111827' } },
         tooltip: { enabled: true, shared: true, intersect: false, y: { formatter: (val) => `${val !== undefined && val !== null ? Number(val).toFixed(2) : '0.00'} ${yUnit}` } },
-        // กำหนด tickAmount: 10 เพื่อไม่ให้ป้ายเวลาแกน X ซ้อนทับกันจนเบราว์เซอร์ค้าง
         xaxis: { type: 'category', categories: [], tickAmount: 10, labels: { rotate: -30, hideOverlappingLabels: true, style: { colors: isDark ? '#8c96a5' : '#6b7280', fontSize: '11px', fontFamily: 'Inter' } } },
-        yaxis: { labels: { formatter: (val) => val !== undefined && val !== null ? Number(val).toFixed(2) : '0.00', style: { colors: isDark ? '#8c96a5' : '#6b7280', fontFamily: 'Inter' } } }
+        yaxis: buildYAxisConfig(yUnit, [])
       };
     }
 
@@ -891,7 +904,6 @@
         fetchVibData(activeNodeBase, hours, myChart, true);
         if (activeNodeTop && DEVICE_LIST.find(d => d.id === activeNodeTop)) fetchVibData(activeNodeTop, hours, myChartTop, false);
       } else if (currentModalType === 'bf' && myChart) {
-        // กรองข้อมูล Bag Filter และทำ Min-Preserving Downsampling
         const slicedHistory = bfHistory.slice(-hours * 10);
         const rawRecords = slicedHistory.map(r => ({
           label: dayjs(r.Timestamp).format(hours >= 24 ? 'DD/MM HH:mm' : 'HH:mm'),
@@ -912,7 +924,6 @@
     function fetchVibData(nodeId, hours, chartInstance, isBaseNode = false) {
       const referenceTime = lastUpdateTimes[nodeId] || Date.now();
       const startTime = referenceTime - (hours * 60 * 60 * 1000);
-      // ถ้าเลือกดู 1 วันขึ้นไป ให้แสดง วัน/เดือน ร่วมกับเวลา เพื่อไม่ให้สับสนว่าเป็นของวันไหน
       const timeFormat = hours >= 24 ? 'DD/MM HH:mm' : 'HH:mm:ss';
 
       db.ref(`Vibration_Logs/${nodeId}`).orderByChild('gatewayEpoch').startAt(startTime / 1000).once('value', snap => {
@@ -942,12 +953,13 @@
             }
           });
 
-          // ทำ Peak-Preserving Downsampling สำหรับ Vibration
           const sampledVib = downsampleSeries(vibRecords, MAX_CHART_POINTS, 'max');
 
           if (chartInstance) {
             chartInstance.updateOptions({
               xaxis: { categories: sampledVib.labels },
+              // อัปเดตแกน Y ให้มีเพดานขั้นต่ำ 10 mm/s และขยายอัตโนมัติถ้าข้อมูลสูงกว่า 10 mm/s
+              yaxis: buildYAxisConfig('mm/s', sampledVib.values),
               series: [{ name: 'Vibration (Peak)', data: sampledVib.values }],
               noData: { text: sampledVib.values.length === 0 ? 'ไม่พบข้อมูลในช่วงเวลานี้' : 'กำลังโหลดข้อมูล...' }
             });
@@ -957,7 +969,6 @@
             if (lastTemp !== null && !isNaN(lastTemp)) document.getElementById('modal-temp').innerText = `${lastTemp.toFixed(1)} °C`;
             if (lastSound !== null && !isNaN(lastSound)) document.getElementById('modal-sound').innerText = `${lastSound.toFixed(1)} dB`;
 
-            // แสดงป้ายแจ้งเตือนเมื่อระบบทำ Downsampling
             const dsBadge = document.getElementById('modal-downsample-info');
             const dsText = document.getElementById('downsample-text');
             if (sampledVib.isDownsampled) {
@@ -967,7 +978,6 @@
               dsBadge.style.display = 'none';
             }
 
-            // ทำ Peak-Preserving Downsampling สำหรับ Sound
             if (myChartSound) {
               const sampledSound = downsampleSeries(soundRecords, MAX_CHART_POINTS, 'max');
               myChartSound.updateOptions({
@@ -987,7 +997,21 @@
     /* ==========================================
        9. System Utilities
        ========================================== */
-    function setAlarmLimit() { const val = prompt("ตั้งค่าขีดจำกัดแจ้งเตือน (Alarm Limit mm/s):", alarmLimit); if (val !== null && !isNaN(parseFloat(val))) { alarmLimit = parseFloat(val); localStorage.setItem('vibAlarmLimit', alarmLimit); document.getElementById('alarm-display').innerText = alarmLimit; } }
+    function setAlarmLimit() {
+      const val = prompt("ตั้งค่าขีดจำกัดแจ้งเตือน (Alarm Limit mm/s - ขั้นต่ำ 10 mm/s):", alarmLimit);
+      if (val !== null && !isNaN(parseFloat(val))) {
+        const parsed = parseFloat(val);
+        if (parsed < MIN_VIB_Y_HIGH) {
+          alert(`ไม่สามารถตั้งค่า Alarm Limit ต่ำกว่า ${MIN_VIB_Y_HIGH} mm/s ได้ ระบบจะปรับเป็น ${MIN_VIB_Y_HIGH} mm/s อัตโนมัติ`);
+          alarmLimit = MIN_VIB_Y_HIGH;
+        } else {
+          alarmLimit = parsed;
+        }
+        localStorage.setItem('vibAlarmLimit', alarmLimit);
+        document.getElementById('alarm-display').innerText = alarmLimit;
+      }
+    }
+
     function toggleSound() {
       isSoundEnabled = !isSoundEnabled; const btn = document.getElementById('sound-toggle');
       if (isSoundEnabled) { btn.innerHTML = '<i class="fa-solid fa-bell"></i> เปิดเสียง'; btn.style.background = '#ef4444'; btn.style.color = '#ffffff'; } 
