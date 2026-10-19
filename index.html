@@ -431,7 +431,7 @@
     };
 
     /* ==========================================
-       ฟังก์ชัน Fast Downsampling
+       4. ฟังก์ชัน Fast Downsampling
        ========================================== */
     function downsampleSeries(records, maxPoints = MAX_CHART_POINTS, mode = 'max') {
       const total = records.length;
@@ -598,7 +598,7 @@
     }
 
     /* ==========================================
-       4. Auto & Tab Switcher (แยกการ์ดตามกลุ่ม CM จริง)
+       5. Auto & Tab Switcher
        ========================================== */
     function toggleAutoMode() {
       isAutoMode = !isAutoMode;
@@ -650,7 +650,6 @@
         if(alarmBtn) alarmBtn.style.display = 'flex';
         if(bfAlarmBtn) bfAlarmBtn.style.display = 'none';
 
-        // วนลูปแสดงเฉพาะการ์ดที่ตรงกับกลุ่ม (group) ของแท็บนั้นๆ จริงๆ
         const bases = DEVICE_LIST.filter(d => !d.id.endsWith('TOP'));
         bases.forEach(baseDev => {
           const card = document.getElementById(`card-${baseDev.id}`);
@@ -675,7 +674,7 @@
     }
 
     /* ==========================================
-       5. Initialize Dashboard UI & Setup Status Dots
+       6. Initialize Dashboard UI & Setup
        ========================================== */
     function initializeDashboard() {
       document.getElementById('alarm-display').innerText = alarmLimit;
@@ -771,7 +770,7 @@
     }
 
     /* ==========================================
-       6. Online/Offline Data Checks (> 10 mins)
+       7. Online/Offline Data Checks (> 10 mins)
        ========================================== */
     function checkOfflineStatus() {
         const now = Date.now();
@@ -804,7 +803,7 @@
     }
 
     /* ==========================================
-       7. Live Data (Firebase & MQTT)
+       8. Live Data (Firebase & MQTT)
        ========================================== */
     function listenLiveStatus() {
       DEVICE_LIST.forEach(dev => {
@@ -988,7 +987,7 @@
     }
 
     /* ==========================================
-       8. Modal & Multi-Chart Functions + Downsampling
+       9. Modal & Multi-Chart Functions
        ========================================== */
     function openVibModal(baseId) {
       currentModalType = 'vib'; activeNodeBase = baseId; activeNodeTop = baseId + 'TOP'; document.body.setAttribute('data-modal', 'vib');
@@ -1276,7 +1275,7 @@
     function closeModalOutside(e) { if (e.target.classList.contains('modal-overlay')) closeModal(); }
 
     /* ==========================================
-       9. System Utilities & Alarm Logic
+       10. System Utilities & Alarm Logic
        ========================================== */
     function setAlarmLimit() {
       const val = prompt("ตั้งค่าขีดจำกัดแจ้งเตือน (Alarm Limit mm/s - ขั้นต่ำ 10 mm/s):", alarmLimit);
