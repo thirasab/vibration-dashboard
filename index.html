@@ -511,7 +511,7 @@
           <i class="fa-solid fa-bell-slash"></i> <span id="ack-text">Ack (15m)</span>
         </button>
         <button class="btn-pill auto-on" id="auto-toggle" onclick="toggleAutoMode()" title="สลับหน้าจออัตโนมัติ">
-          <i class="fa-solid fa-rotate"></i> <span>Auto (10s)</span>
+          <i class="fa-solid fa-rotate"></i> <span>Auto (15s)</span>
         </button>
         <button class="btn-pill" id="sound-toggle" onclick="toggleSound()" title="เปิด/ปิดเสียงแจ้งเตือน">
           <i class="fa-solid fa-bell-slash"></i> เสียง: ปิด
@@ -684,8 +684,8 @@
     let autoTimer = null;
     // ถ้าเปิดใน iframe จะวนเฉพาะแท็บ Vib (cm10-11, cm7-9, cm5-6) เพื่อไม่ให้ซ้ำกับกล่อง Purge Air ด้านบน
     const tabCycle = isEmbeddedInIframe ? ['cm10-11', 'cm7-9', 'cm5-6'] : ['cm10-11', 'cm7-9', 'cm5-6', 'gate-bf']; 
-    let autoRemaining = 10; 
-    const AUTO_MAX_TIME = 10;
+    const AUTO_MAX_TIME = 15;
+    let autoRemaining = AUTO_MAX_TIME;
 
     let isLiveMode = false;
     let bfLiveBuffers = {}; 
