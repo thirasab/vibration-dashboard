@@ -22,9 +22,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dayjs/1.11.10/dayjs.min.js"></script>
 
   <style>
-    /* ========================================================= */
-    /* 1. RESET & THEME CONFIGURATION (SCADA CLEAN DARK DEFAULT) */
-    /* ========================================================= */
     *, *::before, *::after { box-sizing: border-box; }
 
     :root {
@@ -76,9 +73,6 @@
 
     .wrapper { max-width: 1440px; margin: 0 auto; }
 
-    /* ========================================================= */
-    /* 2. UNIFIED TOP TOOLBAR (TABS + COMPACT CONTROLS)          */
-    /* ========================================================= */
     .top-toolbar {
       display: flex;
       align-items: center;
@@ -117,7 +111,6 @@
       gap: 6px;
     }
 
-    /* ซ่อนโลโก้และชื่อซ้ำซ้อนเมื่อเปิดใน iframe ของ Dashboard หลัก */
     body.in-iframe .brand-mini { display: none; }
 
     .main-tabs {
@@ -223,9 +216,6 @@
       border-color: rgba(239, 68, 68, 0.45);
     }
 
-    /* ========================================================= */
-    /* 3. MODERN CARD GRID (CLEAN SPLIT-METRIC DESIGN)           */
-    /* ========================================================= */
     .status-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
@@ -256,7 +246,6 @@
 
     .status-card:active { transform: scale(0.99); }
 
-    /* Card Top Header */
     .card-top {
       display: flex;
       align-items: center;
@@ -307,7 +296,6 @@
       flex-shrink: 0;
     }
 
-    /* Metric Boxes Grid inside Card */
     .metrics-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
@@ -397,7 +385,6 @@
       opacity: 0.85;
     }
 
-    /* Bag Filter Layout */
     .bf-layout { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
     .mqtt-header { display: flex; justify-content: flex-end; width: 100%; }
     .mqtt-status {
@@ -414,7 +401,6 @@
     .status-dot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--status-error); }
     .status-dot.online { background-color: var(--status-ok); box-shadow: 0 0 8px var(--status-ok); }
 
-    /* Alerts */
     @keyframes flashDanger {
       0%, 100% { background-color: var(--card-bg); border-color: rgba(239, 68, 68, 0.5); }
       50% { background-color: rgba(239, 68, 68, 0.14); border-color: #ef4444; box-shadow: 0 0 20px rgba(239, 68, 68, 0.25); }
@@ -423,9 +409,6 @@
     .alert-danger .value, .alert-danger h3 { color: #f87171 !important; }
     .alert-danger .metric-box { border-color: rgba(239, 68, 68, 0.3); }
 
-    /* ========================================================= */
-    /* 4. MODAL & CHART STYLES                                   */
-    /* ========================================================= */
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(4px); z-index: 1000; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.2s ease; }
     .modal-overlay.show { display: flex; opacity: 1; }
     .modal-content { background: var(--bg-color); width: 100%; max-width: 980px; max-height: 92vh; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.5); border: var(--border); }
@@ -446,7 +429,7 @@
     .close-btn { background: var(--btn-bg); color: var(--text-main); border: var(--border); border-radius: 50%; width: 34px; height: 34px; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.2s; }
     .close-btn:hover { background: var(--primary); color: #ffffff; }
 
-    .sensor-stats-bar { display: flex; gap: 16px; align-items: center; background: var(--card-bg); border: var(--border); border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; flex-wrap: wrap; }
+    .sensor-stats-bar { display: flex; gap: 14px; align-items: center; background: var(--card-bg); border: var(--border); border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; flex-wrap: wrap; }
     .stat-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-sub); }
     .stat-item .val { font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 700; color: var(--text-main); }
 
@@ -483,7 +466,6 @@
 <body class="dark-mode">
 
   <div class="wrapper">
-    <!-- แถบควบคุมรวม (Compact Single Toolbar) -->
     <div class="top-toolbar">
       <div class="brand-mini">
         <img src="scg-logo-n.jpg" alt="Logo" class="brand-logo" onerror="this.style.display='none'">
@@ -501,8 +483,8 @@
       </div>
 
       <div class="header-actions">
-        <button class="btn-pill alarm-cfg" onclick="setAlarmLimit()" id="alarm-btn" title="ตั้งค่าขีดจำกัดความสั่นสะเทือน">
-          <i class="fa-solid fa-triangle-exclamation"></i> Limit: <span id="alarm-display">40</span>
+        <button class="btn-pill alarm-cfg" onclick="setAlarmLimit()" id="alarm-btn" title="ตั้งค่าขีดจำกัดความสั่นสะเทือนเริ่มต้น (Default)">
+          <i class="fa-solid fa-triangle-exclamation"></i> Default: <span id="alarm-display">40</span>
         </button>
         <button class="btn-pill bf-cfg" onclick="setBfAlarmLimit()" style="display: none;" id="bf-alarm-btn" title="ตั้งค่าแรงดันลมต่ำสุด">
           <i class="fa-solid fa-gauge"></i> BF: <span id="bf-alarm-display">4.0</span>
@@ -522,10 +504,8 @@
       </div>
     </div>
 
-    <!-- Container สำหรับ Vibration & Sound -->
     <div class="status-grid" id="devices-container"></div>
 
-    <!-- Container สำหรับ Bag Filter -->
     <div class="bf-layout" id="bf-container" style="display: none;">
       <div class="mqtt-header">
         <div class="mqtt-status">
@@ -552,7 +532,6 @@
         </div>
       </div>
 
-      <!-- แถบสถิติ -->
       <div class="sensor-stats-bar" id="modal-temp-bar">
         <div class="stat-item" id="modal-temp-box">
           <i class="fa-solid fa-temperature-half" style="color: #ef4444;"></i> 
@@ -580,6 +559,32 @@
       </div>
 
       <div class="modal-body-scroll">
+        <!-- แถบตั้งค่า Target High แยกตาม Node Code -->
+        <div class="sensor-stats-bar" id="modal-target-config" style="display: none; justify-content: space-between; border-color: rgba(249, 115, 22, 0.35); background: rgba(249, 115, 22, 0.05);">
+          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <span style="font-size: 12px; font-weight: 700; color: #fb923c;">
+              <i class="fa-solid fa-bullseye"></i> ตั้งค่า Target:
+            </span>
+            <select id="target-node-select" onchange="onTargetNodeChange()" style="background: var(--card-bg); color: var(--text-main); border: var(--border); border-radius: 6px; padding: 4px 8px; font-size: 12px; font-family: 'Inter', sans-serif; font-weight: 600;"></select>
+            
+            <label style="font-size: 12px; color: var(--text-sub); display: flex; align-items: center; gap: 4px;">
+              Target High:
+              <input type="number" step="0.5" id="input-target-alarm" style="width: 68px; background: var(--card-bg); color: var(--text-main); border: var(--border); border-radius: 6px; padding: 4px 6px; font-size: 12px; font-family: 'Inter', sans-serif;">
+              <span>mm/s</span>
+            </label>
+
+            <label style="font-size: 12px; color: var(--text-sub); display: flex; align-items: center; gap: 4px;">
+              เพดานกราฟ (Y-Max):
+              <input type="number" step="1" id="input-target-ymax" placeholder="Auto" style="width: 68px; background: var(--card-bg); color: var(--text-main); border: var(--border); border-radius: 6px; padding: 4px 6px; font-size: 12px; font-family: 'Inter', sans-serif;">
+              <span>mm/s</span>
+            </label>
+          </div>
+
+          <button class="btn-pill alarm-cfg" id="btn-save-target" onclick="saveCurrentNodeTarget()" style="background: #f97316; color: #fff; border: none;">
+            <i class="fa-solid fa-floppy-disk"></i> บันทึกลง Sheet
+          </button>
+        </div>
+
         <div class="control-panel" id="modal-time-controls">
           <div class="btn-group">
             <button class="filter-btn active" id="btn-live" onclick="switchToLiveMode()" style="display: none;">
@@ -607,15 +612,14 @@
   </div>
 
   <script>
-    /* ตรวจจับว่าเปิดอยู่ใน iframe หรือไม่ */
+    /* หากโฮสต์หน้าเว็บไว้บน GitHub Pages ให้วาง Web App URL ของ GAS ที่นี่ */
+    const TARGET_GAS_URL = "";
+
     const isEmbeddedInIframe = (window.self !== window.top);
     if (isEmbeddedInIframe) {
       document.body.classList.add('in-iframe');
     }
 
-    /* ==========================================
-       1. ส่วนตั้งค่าข้อมูล และ Firebase
-       ========================================== */
     const DEVICE_LIST = [
       { id: "NOED6522-18", label: "CM10 (6522-18)", color: "#3b82f6", group: "cm10-11" },
       { id: "NOED6522-18TOP", label: "CM10 (6522-18)", color: "#2563eb", group: "cm10-11" },
@@ -648,9 +652,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    /* ==========================================
-       2. ส่วนตั้งค่า Bag Filter (MQTT & UI)
-       ========================================== */
     const gatesConfig = [
       { id: 'p1', name: '6526.04', color: '#38bdf8' },
       { id: 'p2', name: '6524.041', color: '#38bdf8' },
@@ -664,9 +665,6 @@
     let bfHistory = []; 
     let latestBfValues = {};
 
-    /* ==========================================
-       3. ตัวแปร Global & ตั้งค่าเพดานกราฟ / Alarm / ACK
-       ========================================== */
     const OFFLINE_TIMEOUT = 10 * 60 * 1000;
     const MAX_CHART_POINTS = 300; 
     const MIN_VIB_Y_HIGH = 10;     
@@ -675,6 +673,7 @@
     let lastUpdateTimes = {};
     let alarmLimit = Math.max(MIN_VIB_Y_HIGH, parseFloat(localStorage.getItem('vibAlarmLimit')) || 40.0);
     let bfAlarmLimit = parseFloat(localStorage.getItem('bfAlarmLimit')) || 4.0;
+    let deviceTargets = JSON.parse(localStorage.getItem('deviceTargetsCache') || '{}');
     
     let latestValues = {}; 
     let alertStatus = {}; 
@@ -682,7 +681,6 @@
 
     let isAutoMode = true; 
     let autoTimer = null;
-    // ถ้าเปิดใน iframe จะวนเฉพาะแท็บ Vib (cm10-11, cm7-9, cm5-6) เพื่อไม่ให้ซ้ำกับกล่อง Purge Air ด้านบน
     const tabCycle = isEmbeddedInIframe ? ['cm10-11', 'cm7-9', 'cm5-6'] : ['cm10-11', 'cm7-9', 'cm5-6', 'gate-bf']; 
     const AUTO_MAX_TIME = 15;
     let autoRemaining = AUTO_MAX_TIME;
@@ -722,7 +720,118 @@
     };
 
     /* ==========================================
-       ฟังก์ชัน Fast Downsampling
+       Target High & Chart Y-Max Helpers
+       ========================================== */
+    function getNodeAlarmLimit(nodeId) {
+      if (deviceTargets[nodeId] && deviceTargets[nodeId].alarmHigh !== undefined && !isNaN(deviceTargets[nodeId].alarmHigh)) {
+        return parseFloat(deviceTargets[nodeId].alarmHigh);
+      }
+      return alarmLimit;
+    }
+
+    function getNodeChartYMax(nodeId) {
+      if (deviceTargets[nodeId] && deviceTargets[nodeId].chartYMax !== undefined && deviceTargets[nodeId].chartYMax !== null && !isNaN(deviceTargets[nodeId].chartYMax)) {
+        return parseFloat(deviceTargets[nodeId].chartYMax);
+      }
+      return null;
+    }
+
+    async function loadDeviceTargetsFromSheet() {
+      if (typeof google !== 'undefined' && google.script && google.script.run) {
+        google.script.run.withSuccessHandler(res => {
+          if (res) {
+            deviceTargets = res;
+            localStorage.setItem('deviceTargetsCache', JSON.stringify(deviceTargets));
+            recheckAllVibAlarms();
+          }
+        }).getAllDeviceTargets();
+      } else if (TARGET_GAS_URL && TARGET_GAS_URL.startsWith('http')) {
+        try {
+          const resp = await fetch(`${TARGET_GAS_URL}?action=getTargets`);
+          const res = await resp.json();
+          if (res) {
+            deviceTargets = res;
+            localStorage.setItem('deviceTargetsCache', JSON.stringify(deviceTargets));
+            recheckAllVibAlarms();
+          }
+        } catch (err) { console.error("Load targets error:", err); }
+      }
+    }
+
+    async function saveCurrentNodeTarget() {
+      const nodeId = document.getElementById('target-node-select').value;
+      const alarmVal = parseFloat(document.getElementById('input-target-alarm').value);
+      const yMaxRaw = document.getElementById('input-target-ymax').value;
+      const yMaxVal = (yMaxRaw !== '' && !isNaN(parseFloat(yMaxRaw)) && parseFloat(yMaxRaw) > 0) ? parseFloat(yMaxRaw) : null;
+
+      if (isNaN(alarmVal) || alarmVal <= 0) {
+        alert("กรุณาระบุค่า Target High ให้ถูกต้อง");
+        return;
+      }
+
+      const btn = document.getElementById('btn-save-target');
+      const oldHtml = btn.innerHTML;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก...';
+      btn.disabled = true;
+
+      deviceTargets[nodeId] = { alarmHigh: alarmVal, chartYMax: yMaxVal };
+      localStorage.setItem('deviceTargetsCache', JSON.stringify(deviceTargets));
+      recheckAllVibAlarms();
+      loadDataByDuration(currentDurationHours);
+
+      try {
+        if (typeof google !== 'undefined' && google.script && google.script.run) {
+          await new Promise((resolve) => {
+            google.script.run.withSuccessHandler(resolve).withFailureHandler(resolve)
+              .saveDeviceTarget(nodeId, alarmVal, yMaxVal);
+          });
+        } else if (TARGET_GAS_URL && TARGET_GAS_URL.startsWith('http')) {
+          await fetch(TARGET_GAS_URL, {
+            method: 'POST',
+            body: JSON.stringify({ action: 'saveTarget', nodeId: nodeId, alarmHigh: alarmVal, chartYMax: yMaxVal })
+          });
+        }
+        btn.innerHTML = '<i class="fa-solid fa-check"></i> บันทึกสำเร็จ';
+      } catch (e) {
+        alert("เกิดข้อผิดพลาดในการบันทึกลง Sheet: " + e.message);
+        btn.innerHTML = oldHtml;
+      }
+
+      setTimeout(() => {
+        btn.innerHTML = oldHtml;
+        btn.disabled = false;
+      }, 1500);
+    }
+
+    function onTargetNodeChange() {
+      const nodeId = document.getElementById('target-node-select').value;
+      document.getElementById('input-target-alarm').value = getNodeAlarmLimit(nodeId);
+      const yMax = getNodeChartYMax(nodeId);
+      document.getElementById('input-target-ymax').value = yMax !== null ? yMax : '';
+    }
+
+    function recheckAllVibAlarms() {
+      const bases = DEVICE_LIST.filter(d => !d.id.endsWith('TOP'));
+      bases.forEach(baseDev => {
+        const topId = baseDev.id + 'TOP';
+        if (latestValues[baseDev.id] !== undefined) {
+          alertStatus[baseDev.id] = (latestValues[baseDev.id] >= getNodeAlarmLimit(baseDev.id));
+        }
+        if (latestValues[topId] !== undefined) {
+          alertStatus[topId] = (latestValues[topId] >= getNodeAlarmLimit(topId));
+        }
+        const hasAlarm = alertStatus[baseDev.id] === true || alertStatus[topId] === true;
+        const card = document.getElementById(`card-${baseDev.id}`);
+        if (card) {
+          if (hasAlarm) card.classList.add('alert-danger');
+          else card.classList.remove('alert-danger');
+        }
+      });
+      triggerAlarmLogic();
+    }
+
+    /* ==========================================
+       Fast Downsampling & Chart Builders
        ========================================== */
     function downsampleSeries(records, maxPoints = MAX_CHART_POINTS, mode = 'max') {
       const total = records.length;
@@ -755,16 +864,8 @@
             const item = records[j];
             if (item.value === null || item.value === undefined || isNaN(item.value)) continue;
 
-            if (item.value < minVal) {
-              minVal = item.value;
-              minRec = item;
-              minIdx = j;
-            }
-            if (item.value > maxVal) {
-              maxVal = item.value;
-              maxRec = item;
-              maxIdx = j;
-            }
+            if (item.value < minVal) { minVal = item.value; minRec = item; minIdx = j; }
+            if (item.value > maxVal) { maxVal = item.value; maxRec = item; maxIdx = j; }
           }
 
           if (minRec && maxRec) {
@@ -819,7 +920,7 @@
       return null;
     }
 
-    function buildYAxisConfig(yUnit = 'mm/s', dataValues = []) {
+    function buildYAxisConfig(yUnit = 'mm/s', dataValues = [], nodeId = null) {
       const isDark = document.body.classList.contains('dark-mode');
       const baseYAxis = {
         labels: {
@@ -833,7 +934,14 @@
 
       if (yUnit === 'mm/s') {
         baseYAxis.min = 0;
-        baseYAxis.max = maxDataVal > MIN_VIB_Y_HIGH ? Math.ceil(maxDataVal * 1.1) : MIN_VIB_Y_HIGH;
+        const customYMax = nodeId ? getNodeChartYMax(nodeId) : null;
+        if (customYMax !== null && customYMax > 0) {
+          baseYAxis.max = customYMax;
+        } else {
+          const nodeLimit = nodeId ? getNodeAlarmLimit(nodeId) : MIN_VIB_Y_HIGH;
+          const autoMax = Math.max(maxDataVal * 1.1, nodeLimit * 1.15, MIN_VIB_Y_HIGH);
+          baseYAxis.max = Math.ceil(autoMax);
+        }
       } else if (yUnit === 'Bar') {
         baseYAxis.min = 0;
         const calculatedMax = maxDataVal > MIN_BF_Y_HIGH ? Math.ceil(maxDataVal * 1.1) : MIN_BF_Y_HIGH;
@@ -889,7 +997,7 @@
     }
 
     /* ==========================================
-       4. Auto & Tab Switcher
+       Auto & Tab Switcher
        ========================================== */
     function toggleAutoMode() {
       isAutoMode = !isAutoMode;
@@ -965,7 +1073,7 @@
     }
 
     /* ==========================================
-       5. Initialize Dashboard UI (Clean Split Cards)
+       Initialize Dashboard UI
        ========================================== */
     function initializeDashboard() {
       document.getElementById('alarm-display').innerText = alarmLimit;
@@ -1082,9 +1190,6 @@
       updateAutoModeUI(); startAutoTimer(); switchTabCore(tabCycle[0]);
     }
 
-    /* ==========================================
-       6. Online/Offline Data Checks (> 10 mins)
-       ========================================== */
     function checkOfflineStatus() {
       const now = Date.now();
       DEVICE_LIST.forEach(dev => {
@@ -1116,7 +1221,7 @@
     }
 
     /* ==========================================
-       7. Live Data (Firebase & MQTT)
+       Live Data (Firebase & MQTT)
        ========================================== */
     function listenLiveStatus() {
       DEVICE_LIST.forEach(dev => {
@@ -1154,7 +1259,7 @@
               if (valEl) valEl.innerText = currentVal.toFixed(2);
               if (!dev.id.endsWith('TOP')) document.getElementById(`time-${baseId}`).innerHTML = `<i class="fa-regular fa-clock"></i> ` + dayjs(epochMs).format('HH:mm:ss');
               
-              alertStatus[dev.id] = (currentVal >= alarmLimit);
+              alertStatus[dev.id] = (currentVal >= getNodeAlarmLimit(dev.id));
               let topId = baseId + 'TOP'; let hasAlarm = alertStatus[dev.id] === true || alertStatus[topId] === true;
               const card = document.getElementById(`card-${baseId}`);
               if (card) { if (hasAlarm) card.classList.add('alert-danger'); else card.classList.remove('alert-danger'); }
@@ -1300,7 +1405,7 @@
     }
 
     /* ==========================================
-       8. Modal & Multi-Chart Functions + Downsampling
+       Modal & Multi-Chart Functions
        ========================================== */
     function openVibModal(baseId) {
       currentModalType = 'vib'; activeNodeBase = baseId; activeNodeTop = baseId + 'TOP'; document.body.setAttribute('data-modal', 'vib');
@@ -1314,6 +1419,16 @@
       document.getElementById('modal-bf-min-box').style.display = 'none';
       document.getElementById('modal-downsample-info').style.display = 'none';
       document.getElementById('btn-live').style.display = 'none';
+
+      const targetBar = document.getElementById('modal-target-config');
+      const nodeSelect = document.getElementById('target-node-select');
+      targetBar.style.display = 'flex';
+      nodeSelect.innerHTML = `<option value="${baseId}">${baseId} (${topInfo ? 'Down' : 'Vib'})</option>`;
+      if (topInfo) {
+        nodeSelect.innerHTML += `<option value="${activeNodeTop}">${activeNodeTop} (Motor)</option>`;
+      }
+      onTargetNodeChange();
+
       document.getElementById('chartModal').classList.add('show'); isModalOpen = true;
 
       if(myChart) { myChart.destroy(); myChart = null; }
@@ -1346,6 +1461,7 @@
       currentModalType = 'bf'; activeGateKey = gateId; activeGateTitle = title; activeGateColor = color; document.body.setAttribute('data-modal', 'bf');
       document.getElementById('modal-title').innerText = `${title} (Purge Air Pressure)`;
       
+      document.getElementById('modal-target-config').style.display = 'none';
       document.getElementById('modal-temp-bar').style.display = 'flex';
       document.getElementById('modal-temp-box').style.display = 'none';
       document.getElementById('modal-sound-box').style.display = 'none';
@@ -1549,9 +1665,22 @@
         const sampledVib = downsampleSeries(vibRecords, MAX_CHART_POINTS, 'max');
 
         if (chartInstance) {
+          const nodeTarget = getNodeAlarmLimit(nodeId);
           chartInstance.updateOptions({
             xaxis: { categories: sampledVib.labels },
-            yaxis: buildYAxisConfig('mm/s', sampledVib.values),
+            yaxis: buildYAxisConfig('mm/s', sampledVib.values, nodeId),
+            annotations: {
+              yaxis: [{
+                y: nodeTarget,
+                borderColor: '#ef4444',
+                strokeDashArray: 4,
+                label: {
+                  borderColor: '#ef4444',
+                  style: { color: '#ffffff', background: '#ef4444', fontFamily: 'Prompt', fontSize: '11px' },
+                  text: `Target High: ${nodeTarget.toFixed(1)} mm/s`
+                }
+              }]
+            },
             series: [{ name: 'Vibration (Peak)', data: sampledVib.values }],
             noData: { text: sampledVib.values.length === 0 ? 'ไม่พบข้อมูลในช่วงเวลานี้' : 'กำลังโหลดข้อมูล...' }
           });
@@ -1588,10 +1717,10 @@
     function closeModalOutside(e) { if (e.target.classList.contains('modal-overlay')) closeModal(); }
 
     /* ==========================================
-       9. System Utilities & Alarm Logic
+       System Utilities & Alarm Logic
        ========================================== */
     function setAlarmLimit() {
-      const val = prompt("ตั้งค่าขีดจำกัดแจ้งเตือน (Alarm Limit mm/s - ขั้นต่ำ 10 mm/s):", alarmLimit);
+      const val = prompt("ตั้งค่าขีดจำกัดแจ้งเตือนเริ่มต้น (Default Alarm Limit mm/s - ขั้นต่ำ 10 mm/s):", alarmLimit);
       if (val !== null && !isNaN(parseFloat(val))) {
         const parsed = parseFloat(val);
         if (parsed < MIN_VIB_Y_HIGH) {
@@ -1602,6 +1731,7 @@
         }
         localStorage.setItem('vibAlarmLimit', alarmLimit);
         document.getElementById('alarm-display').innerText = alarmLimit;
+        recheckAllVibAlarms();
       }
     }
 
@@ -1745,10 +1875,12 @@
 
     window.onload = function() {
       initializeDashboard();
+      loadDeviceTargetsFromSheet();
       listenLiveStatus();
       connectMQTT();
       fetchBFHistory();
       setInterval(fetchBFHistory, 60000);
+      setInterval(loadDeviceTargetsFromSheet, 120000);
       setInterval(checkOfflineStatus, 10000);
     };
   </script>
