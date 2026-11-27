@@ -411,7 +411,7 @@
 
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(4px); z-index: 1000; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.2s ease; }
     .modal-overlay.show { display: flex; opacity: 1; }
-    .modal-content { background: var(--bg-color); width: 100%; max-width: 980px; max-height: 92vh; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.5); border: var(--border); }
+    .modal-content { background: var(--bg-color); width: 100%; max-width: 1020px; max-height: 92vh; border-radius: 16px; padding: 18px; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.5); border: var(--border); }
 
     .modal-content:fullscreen, .modal-content:-webkit-full-screen {
       width: 100vw !important; height: 100vh !important; max-width: 100vw !important; max-height: 100vh !important; border-radius: 0 !important; padding: 20px !important;
@@ -559,24 +559,36 @@
       </div>
 
       <div class="modal-body-scroll">
-        <!-- แถบตั้งค่า Target High แยกตาม Node Code -->
-        <div class="sensor-stats-bar" id="modal-target-config" style="display: none; justify-content: space-between; border-color: rgba(249, 115, 22, 0.35); background: rgba(249, 115, 22, 0.05);">
-          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+        <!-- แถบตั้งค่า Target High & Y-Max (Vib + Sound) แยกตาม Node Code -->
+        <div class="sensor-stats-bar" id="modal-target-config" style="display: none; justify-content: space-between; gap: 10px; border-color: rgba(249, 115, 22, 0.35); background: rgba(249, 115, 22, 0.05);">
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             <span style="font-size: 12px; font-weight: 700; color: #fb923c;">
               <i class="fa-solid fa-bullseye"></i> ตั้งค่า Target:
             </span>
             <select id="target-node-select" onchange="onTargetNodeChange()" style="background: var(--card-bg); color: var(--text-main); border: var(--border); border-radius: 6px; padding: 4px 8px; font-size: 12px; font-family: 'Inter', sans-serif; font-weight: 600;"></select>
             
-            <label style="font-size: 12px; color: var(--text-sub); display: flex; align-items: center; gap: 4px;">
-              Target High:
-              <input type="number" step="0.5" id="input-target-alarm" style="width: 68px; background: var(--card-bg); color: var(--text-main); border: var(--border); border-radius: 6px; padding: 4px 6px; font-size: 12px; font-family: 'Inter', sans-serif;">
+            <label style="font-size: 12px; color: var(--text-sub); display: flex; align-items: center; gap: 3px;">
+              Vib High:
+              <input type="number" step="0.5" id="input-target-alarm" style="width: 62px; background: var(--card-bg); color: var(--text-main); border: var(--border); border-radius: 6px; padding: 4px 6px; font-size: 12px; font-family: 'Inter', sans-serif;">
               <span>mm/s</span>
             </label>
 
-            <label style="font-size: 12px; color: var(--text-sub); display: flex; align-items: center; gap: 4px;">
-              เพดานกราฟ (Y-Max):
-              <input type="number" step="1" id="input-target-ymax" placeholder="Auto" style="width: 68px; background: var(--card-bg); color: var(--text-main); border: var(--border); border-radius: 6px; padding: 4px 6px; font-size: 12px; font-family: 'Inter', sans-serif;">
+            <label style="font-size: 12px; color: var(--text-sub); display: flex; align-items: center; gap: 3px;">
+              Vib Y-Max:
+              <input type="number" step="1" id="input-target-ymax" placeholder="Auto" style="width: 62px; background: var(--card-bg); color: var(--text-main); border: var(--border); border-radius: 6px; padding: 4px 6px; font-size: 12px; font-family: 'Inter', sans-serif;">
               <span>mm/s</span>
+            </label>
+
+            <label style="font-size: 12px; color: #fbbf24; display: flex; align-items: center; gap: 3px;">
+              Sound High:
+              <input type="number" step="1" id="input-sound-alarm" style="width: 62px; background: var(--card-bg); color: var(--text-main); border: var(--border); border-radius: 6px; padding: 4px 6px; font-size: 12px; font-family: 'Inter', sans-serif;">
+              <span>dB</span>
+            </label>
+
+            <label style="font-size: 12px; color: #fbbf24; display: flex; align-items: center; gap: 3px;">
+              Sound Y-Max:
+              <input type="number" step="5" id="input-sound-ymax" placeholder="Auto" style="width: 62px; background: var(--card-bg); color: var(--text-main); border: var(--border); border-radius: 6px; padding: 4px 6px; font-size: 12px; font-family: 'Inter', sans-serif;">
+              <span>dB</span>
             </label>
           </div>
 
@@ -613,7 +625,7 @@
 
   <script>
     /* หากโฮสต์หน้าเว็บไว้บน GitHub Pages ให้วาง Web App URL ของ GAS ที่นี่ */
-    const TARGET_GAS_URL = "https://script.google.com/macros/s/AKfycbzrCeXQPORuyWY_1GSFvemzYC3zMK8gTKDp9U-DXpr3KCVixaLwP7L_FLRZtSElOYqT0Q/exec";
+    const TARGET_GAS_URL = "";
 
     const isEmbeddedInIframe = (window.self !== window.top);
     if (isEmbeddedInIframe) {
@@ -669,6 +681,8 @@
     const MAX_CHART_POINTS = 300; 
     const MIN_VIB_Y_HIGH = 10;     
     const MIN_BF_Y_HIGH = 8;       
+    const DEFAULT_SOUND_ALARM_DB = 95.0;
+    const MIN_SOUND_Y_HIGH = 100;
 
     let lastUpdateTimes = {};
     let alarmLimit = Math.max(MIN_VIB_Y_HIGH, parseFloat(localStorage.getItem('vibAlarmLimit')) || 40.0);
@@ -676,6 +690,7 @@
     let deviceTargets = JSON.parse(localStorage.getItem('deviceTargetsCache') || '{}');
     
     let latestValues = {}; 
+    let latestSoundValues = {};
     let alertStatus = {}; 
     let currentTabGroup = 'cm10-11'; 
 
@@ -720,10 +735,10 @@
     };
 
     /* ==========================================
-       Target High & Chart Y-Max Helpers
+       Target High & Chart Y-Max Helpers (Vib + Sound)
        ========================================== */
     function getNodeAlarmLimit(nodeId) {
-      if (deviceTargets[nodeId] && deviceTargets[nodeId].alarmHigh !== undefined && !isNaN(deviceTargets[nodeId].alarmHigh)) {
+      if (deviceTargets[nodeId] && deviceTargets[nodeId].alarmHigh !== undefined && deviceTargets[nodeId].alarmHigh !== null && !isNaN(deviceTargets[nodeId].alarmHigh)) {
         return parseFloat(deviceTargets[nodeId].alarmHigh);
       }
       return alarmLimit;
@@ -732,6 +747,20 @@
     function getNodeChartYMax(nodeId) {
       if (deviceTargets[nodeId] && deviceTargets[nodeId].chartYMax !== undefined && deviceTargets[nodeId].chartYMax !== null && !isNaN(deviceTargets[nodeId].chartYMax)) {
         return parseFloat(deviceTargets[nodeId].chartYMax);
+      }
+      return null;
+    }
+
+    function getNodeSoundAlarmLimit(nodeId) {
+      if (deviceTargets[nodeId] && deviceTargets[nodeId].soundHigh !== undefined && deviceTargets[nodeId].soundHigh !== null && !isNaN(deviceTargets[nodeId].soundHigh)) {
+        return parseFloat(deviceTargets[nodeId].soundHigh);
+      }
+      return DEFAULT_SOUND_ALARM_DB;
+    }
+
+    function getNodeSoundChartYMax(nodeId) {
+      if (deviceTargets[nodeId] && deviceTargets[nodeId].soundYMax !== undefined && deviceTargets[nodeId].soundYMax !== null && !isNaN(deviceTargets[nodeId].soundYMax)) {
+        return parseFloat(deviceTargets[nodeId].soundYMax);
       }
       return null;
     }
@@ -764,8 +793,12 @@
       const yMaxRaw = document.getElementById('input-target-ymax').value;
       const yMaxVal = (yMaxRaw !== '' && !isNaN(parseFloat(yMaxRaw)) && parseFloat(yMaxRaw) > 0) ? parseFloat(yMaxRaw) : null;
 
-      if (isNaN(alarmVal) || alarmVal <= 0) {
-        alert("กรุณาระบุค่า Target High ให้ถูกต้อง");
+      const soundAlarmVal = parseFloat(document.getElementById('input-sound-alarm').value);
+      const sYMaxRaw = document.getElementById('input-sound-ymax').value;
+      const soundYMaxVal = (sYMaxRaw !== '' && !isNaN(parseFloat(sYMaxRaw)) && parseFloat(sYMaxRaw) > 0) ? parseFloat(sYMaxRaw) : null;
+
+      if (isNaN(alarmVal) || alarmVal <= 0 || isNaN(soundAlarmVal) || soundAlarmVal <= 0) {
+        alert("กรุณาระบุค่า Target High (Vib และ Sound) ให้ถูกต้อง");
         return;
       }
 
@@ -774,7 +807,12 @@
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก...';
       btn.disabled = true;
 
-      deviceTargets[nodeId] = { alarmHigh: alarmVal, chartYMax: yMaxVal };
+      deviceTargets[nodeId] = {
+        alarmHigh: alarmVal,
+        chartYMax: yMaxVal,
+        soundHigh: soundAlarmVal,
+        soundYMax: soundYMaxVal
+      };
       localStorage.setItem('deviceTargetsCache', JSON.stringify(deviceTargets));
       recheckAllVibAlarms();
       loadDataByDuration(currentDurationHours);
@@ -783,12 +821,19 @@
         if (typeof google !== 'undefined' && google.script && google.script.run) {
           await new Promise((resolve) => {
             google.script.run.withSuccessHandler(resolve).withFailureHandler(resolve)
-              .saveDeviceTarget(nodeId, alarmVal, yMaxVal);
+              .saveDeviceTarget(nodeId, alarmVal, yMaxVal, soundAlarmVal, soundYMaxVal);
           });
         } else if (TARGET_GAS_URL && TARGET_GAS_URL.startsWith('http')) {
           await fetch(TARGET_GAS_URL, {
             method: 'POST',
-            body: JSON.stringify({ action: 'saveTarget', nodeId: nodeId, alarmHigh: alarmVal, chartYMax: yMaxVal })
+            body: JSON.stringify({
+              action: 'saveTarget',
+              nodeId: nodeId,
+              alarmHigh: alarmVal,
+              chartYMax: yMaxVal,
+              soundHigh: soundAlarmVal,
+              soundYMax: soundYMaxVal
+            })
           });
         }
         btn.innerHTML = '<i class="fa-solid fa-check"></i> บันทึกสำเร็จ';
@@ -808,19 +853,29 @@
       document.getElementById('input-target-alarm').value = getNodeAlarmLimit(nodeId);
       const yMax = getNodeChartYMax(nodeId);
       document.getElementById('input-target-ymax').value = yMax !== null ? yMax : '';
+
+      document.getElementById('input-sound-alarm').value = getNodeSoundAlarmLimit(nodeId);
+      const sYMax = getNodeSoundChartYMax(nodeId);
+      document.getElementById('input-sound-ymax').value = sYMax !== null ? sYMax : '';
     }
 
     function recheckAllVibAlarms() {
       const bases = DEVICE_LIST.filter(d => !d.id.endsWith('TOP'));
       bases.forEach(baseDev => {
         const topId = baseDev.id + 'TOP';
+        const soundKey = 'sound-' + baseDev.id;
+
         if (latestValues[baseDev.id] !== undefined) {
           alertStatus[baseDev.id] = (latestValues[baseDev.id] >= getNodeAlarmLimit(baseDev.id));
         }
         if (latestValues[topId] !== undefined) {
           alertStatus[topId] = (latestValues[topId] >= getNodeAlarmLimit(topId));
         }
-        const hasAlarm = alertStatus[baseDev.id] === true || alertStatus[topId] === true;
+        if (latestSoundValues[baseDev.id] !== undefined) {
+          alertStatus[soundKey] = (latestSoundValues[baseDev.id] >= getNodeSoundAlarmLimit(baseDev.id));
+        }
+
+        const hasAlarm = alertStatus[baseDev.id] === true || alertStatus[topId] === true || alertStatus[soundKey] === true;
         const card = document.getElementById(`card-${baseDev.id}`);
         if (card) {
           if (hasAlarm) card.classList.add('alert-danger');
@@ -924,7 +979,7 @@
       const isDark = document.body.classList.contains('dark-mode');
       const baseYAxis = {
         labels: {
-          formatter: (val) => val !== undefined && val !== null ? Number(val).toFixed(2) : '0.00',
+          formatter: (val) => val !== undefined && val !== null ? Number(val).toFixed(yUnit === 'dB' ? 0 : 2) : '0.00',
           style: { colors: isDark ? '#8b9bb4' : '#64748b', fontFamily: 'Inter' }
         }
       };
@@ -941,6 +996,16 @@
           const nodeLimit = nodeId ? getNodeAlarmLimit(nodeId) : MIN_VIB_Y_HIGH;
           const autoMax = Math.max(maxDataVal * 1.1, nodeLimit * 1.15, MIN_VIB_Y_HIGH);
           baseYAxis.max = Math.ceil(autoMax);
+        }
+      } else if (yUnit === 'dB') {
+        baseYAxis.min = 0;
+        const customSoundYMax = nodeId ? getNodeSoundChartYMax(nodeId) : null;
+        if (customSoundYMax !== null && customSoundYMax > 0) {
+          baseYAxis.max = customSoundYMax;
+        } else {
+          const soundTarget = nodeId ? getNodeSoundAlarmLimit(nodeId) : DEFAULT_SOUND_ALARM_DB;
+          const autoSoundMax = Math.max(maxDataVal * 1.1, soundTarget * 1.15, MIN_SOUND_Y_HIGH);
+          baseYAxis.max = Math.ceil(autoSoundMax);
         }
       } else if (yUnit === 'Bar') {
         baseYAxis.min = 0;
@@ -973,7 +1038,7 @@
         colors: [color], stroke: { curve: 'smooth', width: 2 }, markers: { size: 0, hover: { size: 5 } },
         grid: { borderColor: isDark ? '#222833' : '#e5e7eb', strokeDashArray: 4, xaxis: { lines: { show: true } }, yaxis: { lines: { show: true } } },
         title: { text: title, align: 'left', style: { fontSize: '13px', fontFamily: 'Prompt', color: isDark ? '#f1f5f9' : '#0f172a' } },
-        tooltip: { enabled: true, shared: true, intersect: false, y: { formatter: (val) => `${val !== undefined && val !== null ? Number(val).toFixed(2) : '0.00'} ${yUnit}` } },
+        tooltip: { enabled: true, shared: true, intersect: false, y: { formatter: (val) => `${val !== undefined && val !== null ? Number(val).toFixed(yUnit === 'dB' ? 1 : 2) : '0.00'} ${yUnit}` } },
         xaxis: { type: 'category', categories: [], tickAmount: 10, labels: { rotate: -30, hideOverlappingLabels: true, style: { colors: isDark ? '#8b9bb4' : '#64748b', fontSize: '11px', fontFamily: 'Inter' } } },
         yaxis: buildYAxisConfig(yUnit, [])
       };
@@ -1085,6 +1150,7 @@
       bases.forEach(baseDev => {
         const topDev = DEVICE_LIST.find(d => d.id === baseDev.id + 'TOP');
         alertStatus[baseDev.id] = false; if(topDev) alertStatus[topDev.id] = false;
+        alertStatus['sound-' + baseDev.id] = false;
 
         let topHtml = topDev ? `
           <div class="metric-box">
@@ -1250,6 +1316,7 @@
             let soundVal = (data.soundMax !== undefined && data.soundMax !== null) ? parseFloat(data.soundMax) : (data.sound !== undefined && data.sound !== null) ? parseFloat(data.sound) : (data.snd !== undefined && data.snd !== null) ? parseFloat(data.snd) : (data.noise !== undefined && data.noise !== null) ? parseFloat(data.noise) : null;
             
             const epochMs = data.gatewayEpoch ? data.gatewayEpoch * 1000 : Date.now();
+            let topId = baseId + 'TOP';
 
             if (currentVal !== null && !isNaN(currentVal)) {
               lastUpdateTimes[dev.id] = epochMs;
@@ -1260,20 +1327,15 @@
               if (!dev.id.endsWith('TOP')) document.getElementById(`time-${baseId}`).innerHTML = `<i class="fa-regular fa-clock"></i> ` + dayjs(epochMs).format('HH:mm:ss');
               
               alertStatus[dev.id] = (currentVal >= getNodeAlarmLimit(dev.id));
-              let topId = baseId + 'TOP'; let hasAlarm = alertStatus[dev.id] === true || alertStatus[topId] === true;
-              const card = document.getElementById(`card-${baseId}`);
-              if (card) { if (hasAlarm) card.classList.add('alert-danger'); else card.classList.remove('alert-danger'); }
-              triggerAlarmLogic();
-
-              if (!vibSparkBuffers[dev.id]) vibSparkBuffers[dev.id] = []; vibSparkBuffers[dev.id].push(currentVal);
-              if (vibSparkBuffers[dev.id].length > MAX_SPARK_POINTS) vibSparkBuffers[dev.id].shift();
-              if (sparkCharts[dev.id]) sparkCharts[dev.id].updateSeries([{ data: vibSparkBuffers[dev.id] }]);
             }
 
             if (soundVal !== null && !isNaN(soundVal) && !dev.id.endsWith('TOP')) {
               lastUpdateTimes['sound-' + baseId] = epochMs;
+              latestSoundValues[baseId] = soundVal;
               const soundEl = document.getElementById(`val-sound-${baseId}`);
               if (soundEl) soundEl.innerText = soundVal.toFixed(1);
+
+              alertStatus['sound-' + baseId] = (soundVal >= getNodeSoundAlarmLimit(baseId));
 
               if (!soundSparkBuffers[baseId]) soundSparkBuffers[baseId] = []; soundSparkBuffers[baseId].push(soundVal);
               if (soundSparkBuffers[baseId].length > MAX_SPARK_POINTS) soundSparkBuffers[baseId].shift();
@@ -1282,6 +1344,17 @@
               if (isModalOpen && activeNodeBase === baseId) document.getElementById('modal-sound').innerText = `${soundVal.toFixed(1)} dB`;
             }
 
+            const hasAlarm = alertStatus[baseId] === true || alertStatus[topId] === true || alertStatus['sound-' + baseId] === true;
+            const card = document.getElementById(`card-${baseId}`);
+            if (card) { if (hasAlarm) card.classList.add('alert-danger'); else card.classList.remove('alert-danger'); }
+
+            if (currentVal !== null && !isNaN(currentVal)) {
+              if (!vibSparkBuffers[dev.id]) vibSparkBuffers[dev.id] = []; vibSparkBuffers[dev.id].push(currentVal);
+              if (vibSparkBuffers[dev.id].length > MAX_SPARK_POINTS) vibSparkBuffers[dev.id].shift();
+              if (sparkCharts[dev.id]) sparkCharts[dev.id].updateSeries([{ data: vibSparkBuffers[dev.id] }]);
+            }
+
+            triggerAlarmLogic();
             checkOfflineStatus();
           });
         });
@@ -1702,8 +1775,22 @@
 
           if (myChartSound) {
             const sampledSound = downsampleSeries(soundRecords, MAX_CHART_POINTS, 'max');
+            const soundTarget = getNodeSoundAlarmLimit(nodeId);
             myChartSound.updateOptions({
               xaxis: { categories: sampledSound.labels },
+              yaxis: buildYAxisConfig('dB', sampledSound.values, nodeId),
+              annotations: {
+                yaxis: [{
+                  y: soundTarget,
+                  borderColor: '#f59e0b',
+                  strokeDashArray: 4,
+                  label: {
+                    borderColor: '#f59e0b',
+                    style: { color: '#0f172a', background: '#fbbf24', fontFamily: 'Prompt', fontSize: '11px' },
+                    text: `Sound Target: ${soundTarget.toFixed(0)} dB`
+                  }
+                }]
+              },
               series: [{ name: 'Sound Max', data: sampledSound.values }],
               noData: { text: sampledSound.values.length === 0 ? 'ไม่พบข้อมูลเสียงในช่วงเวลานี้' : 'กำลังโหลดข้อมูล...' }
             });
@@ -1800,7 +1887,8 @@
       };
 
       DEVICE_LIST.forEach(dev => {
-        if (alertStatus[dev.id] === true) {
+        const baseId = dev.id.endsWith('TOP') ? dev.id.replace('TOP', '') : dev.id;
+        if (alertStatus[dev.id] === true || alertStatus['sound-' + baseId] === true) {
           groupHasAlarm[dev.group] = true;
         }
       });
