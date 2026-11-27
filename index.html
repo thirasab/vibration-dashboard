@@ -625,7 +625,7 @@
 
   <script>
     /* หากโฮสต์หน้าเว็บไว้บน GitHub Pages ให้วาง Web App URL ของ GAS ที่นี่ */
-    const TARGET_GAS_URL = "https://script.google.com/macros/s/AKfycbzrCeXQPORuyWY_1GSFvemzYC3zMK8gTKDp9U-DXpr3KCVixaLwP7L_FLRZtSElOYqT0Q/exec";
+    const TARGET_GAS_URL = "";
 
     const isEmbeddedInIframe = (window.self !== window.top);
     if (isEmbeddedInIframe) {
@@ -1416,7 +1416,7 @@
             if (curBuf && myChart) {
               const minVal = curBuf.data.length > 0 ? Math.min(...curBuf.data) : 0;
               const minEl = document.getElementById('modal-bf-min');
-              minEl.innerText = `${minVal.toFixed(2)} Bar`;
+              minEl.innerText = curBuf.data.length > 0 ? `${minVal.toFixed(2)} Bar` : '-- Bar';
               minEl.style.color = minVal < bfAlarmLimit ? '#ef4444' : 'var(--text-main)';
 
               myChart.updateOptions({
